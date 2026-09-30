@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/dashboard_item.dart';
+import '../../core/widgets/placeholder.dart';
+
+class ParentDashboard extends StatefulWidget {
+  const ParentDashboard({super.key});
+
+  @override
+  State<ParentDashboard> createState() => _ParentDashboardState();
+}
+
+class _ParentDashboardState extends State<ParentDashboard> {
+  int selectedIndex = 0;
+
+  final pages = const [
+    'Home',
+    'Academic Progress',
+    'Attendance',
+    'Chat',
+    'Profile',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Parent'),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.notifications_none),
+          ),
+        ],
+      ),
+
+      body: selectedIndex == 0
+          ? _ParentHome(
+              onNavigate: (index) {
+                setState(() {
+                  selectedIndex = index;
+                });
+              },
+            )
+          : PlaceholderPage(title: pages[selectedIndex]),
+
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            label: 'Progress',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.fact_check_outlined),
+            label: 'Attendance',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline),
+            label: 'Chat',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ParentHome extends StatelessWidget {
+  final ValueChanged<int> onNavigate;
+
+  const _ParentHome({required this.onNavigate});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.secondary],
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Parent Dashboard',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 5),
+              Text(
+                'Track your child\'s school progress',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        DashboardItem(
+          icon: Icons.bar_chart,
+          title: 'Academic Progress',
+          subtitle: 'View marks and results',
+          onTap: () => onNavigate(1),
+        ),
+
+        DashboardItem(
+          icon: Icons.fact_check,
+          title: 'Attendance',
+          subtitle: 'View attendance records',
+          onTap: () => onNavigate(2),
+        ),
+
+        DashboardItem(
+          icon: Icons.chat_outlined,
+          title: 'Teacher Communication',
+          subtitle: 'Message teachers',
+          onTap: () => onNavigate(3),
+        ),
+
+        DashboardItem(
+          icon: Icons.person_outline,
+          title: 'Profile',
+          subtitle: 'Student information',
+          onTap: () => onNavigate(4),
+        ),
+      ],
+    );
+  }
+}

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../features/home/dashboard_screen.dart';
+import '../../core/theme/app_theme.dart';
+import '../../dashboards/screens/admin_dashboard.dart';
+import '../../dashboards/screens/parent_dashboard.dart';
+import '../../dashboards/screens/student_dashboard.dart';
+import '../../dashboards/screens/teacher_dashboard.dart';
 import '../../models/user_role.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,10 +15,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  UserRole selectedRole = UserRole.student;
+
   final emailController = TextEditingController();
+
   final passwordController = TextEditingController();
 
-  UserRole selectedRole = UserRole.parent;
+  bool hidePassword = true;
 
   @override
   void dispose() {
@@ -24,13 +31,29 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void login() {
+    Widget dashboard;
+
+    switch (selectedRole) {
+      case UserRole.student:
+        dashboard = const StudentDashboard();
+        break;
+
+      case UserRole.teacher:
+        dashboard = const TeacherDashboard();
+        break;
+
+      case UserRole.parent:
+        dashboard = const ParentDashboard();
+        break;
+
+      case UserRole.admin:
+        dashboard = const AdminDashboard();
+        break;
+    }
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => DashboardScreen(
-          role: selectedRole,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => dashboard),
     );
   }
 
@@ -38,116 +61,233 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 500,
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 45, 24, 32),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.primary, Color(0xFF6892EE)],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: const Column(
                 children: [
-                  const Icon(
-                    Icons.school_rounded,
-                    size: 70,
-                    color: Color(0xFF2563EB),
+                  CircleAvatar(
+                    radius: 31,
+                    backgroundColor: Color(0x33FFFFFF),
+                    child: Icon(
+                      Icons.school_rounded,
+                      size: 35,
+                      color: Colors.white,
+                    ),
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: 10),
+
+                  Text(
+                    'Welcome to',
+                    style: TextStyle(color: Color(0xDDFFFFFF), fontSize: 18),
+                  ),
+
+                  SizedBox(height: 5),
 
                   Text(
                     'SchoolBridge',
-                    textAlign: TextAlign.center,
-                    style:
-                        Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  const Text(
-                    'School communication and student progress tracking',
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  const Text(
-                    'Select your role',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 35,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: 6),
 
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: UserRole.values.map((role) {
-                      return ChoiceChip(
-                        label: Text(role.displayName),
-                        selected: selectedRole == role,
-                        onSelected: (_) {
-                          setState(() {
-                            selectedRole = role;
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(
-                        Icons.email_outlined,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(
-                        Icons.lock_outline,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  FilledButton(
-                    onPressed: login,
-                    child: const Text(
-                      'Login',
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  const Text(
-                    'Demo login - Firebase Authentication will be connected later.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                  Text(
+                    'Select your role to login',
+                    style: TextStyle(color: Color(0xCCFFFFFF)),
                   ),
                 ],
               ),
             ),
+
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: UserRole.values
+                            .map(
+                              (role) => Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: _RoleButton(
+                                    role: role,
+                                    selected: selectedRole == role,
+                                    onTap: () {
+                                      setState(() {
+                                        selectedRole = role;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          hintText: 'Email Address',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: passwordController,
+                        obscureText: hidePassword,
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              setState(() {
+                                hidePassword = !hidePassword;
+                              });
+                            },
+                            icon: Icon(
+                              hidePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {},
+                          child: const Text('Forgot Password?'),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 53,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: login,
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleButton extends StatelessWidget {
+  final UserRole role;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RoleButton({
+    required this.role,
+    required this.selected,
+    required this.onTap,
+  });
+
+  IconData get icon {
+    switch (role) {
+      case UserRole.parent:
+        return Icons.group_outlined;
+
+      case UserRole.teacher:
+        return Icons.person_outline;
+
+      case UserRole.student:
+        return Icons.menu_book_outlined;
+
+      case UserRole.admin:
+        return Icons.settings_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.primary : const Color(0xFFE2E8F0),
           ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: selected ? Colors.white : AppColors.textGrey,
+            ),
+
+            const SizedBox(height: 6),
+
+            Text(
+              role.displayName,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                color: selected ? Colors.white : AppColors.textGrey,
+              ),
+            ),
+          ],
         ),
       ),
     );
