@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'auth/screens/login_screen.dart';
+import 'auth/screens/splash_screen.dart';
 import 'core/theme/app_theme.dart';
 
 void main() {
@@ -16,7 +16,7 @@ class SchoolBridgeApp extends StatelessWidget {
       title: 'SchoolBridge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }
