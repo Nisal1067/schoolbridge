@@ -123,8 +123,8 @@ class _TeacherHome extends StatelessWidget {
 
         DashboardItem(
           icon: Icons.bar_chart,
-          title: 'Marks & Attendance',
-          subtitle: 'Manage student marks and attendance',
+          title: 'Attendance',
+          subtitle: 'Manage student attendance',
           onTap: () {},
         ),
 
