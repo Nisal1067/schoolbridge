@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/widgets/logout_button.dart';
+
 import '../../features/attendance/attendance_screen.dart';
 import '../../features/attendance/add_attendance_screen.dart';
 
@@ -189,6 +191,7 @@ class _TeacherHome extends StatelessWidget {
             ),
           ),
 
+          const LogoutButton(),
           Stack(
             clipBehavior: Clip.none,
             children: [

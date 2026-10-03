@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/widgets/logout_button.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
@@ -23,6 +25,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: AppBar(
         title: const Text('SchoolBridge'),
         actions: [
+          const LogoutButton(),
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.notifications_none),

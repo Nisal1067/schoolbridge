@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../auth/screens/login_screen.dart';
+import '../../auth/widgets/logout_button.dart';
 import '../../models/user_role.dart';
 
 import '../academic/academic_screen.dart';
@@ -22,19 +22,7 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('${role.displayName} Dashboard'),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
+        actions: [const LogoutButton()],
       ),
 
       body: ListView(
