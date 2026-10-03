@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
+import '../../features/attendance/parent_attendance_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -131,7 +132,14 @@ class _ParentHome extends StatelessWidget {
           icon: Icons.fact_check,
           title: 'Attendance',
           subtitle: 'View attendance records',
-          onTap: () => onNavigate(2),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ParentAttendanceScreen(),
+              ),
+            );
+          },
         ),
 
         DashboardItem(
