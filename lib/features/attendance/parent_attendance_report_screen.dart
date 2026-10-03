@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'models/attendance_record.dart';
+import 'widgets/student_attendance_view.dart';
+
 class ParentAttendanceReportScreen extends StatefulWidget {
-  const ParentAttendanceReportScreen({super.key});
+  final int initialTerm;
+  final String? initialStudentId;
+  const ParentAttendanceReportScreen({
+    super.key,
+    this.initialTerm = 0,
+    this.initialStudentId,
+  });
 
   @override
   State<ParentAttendanceReportScreen> createState() =>
@@ -10,53 +19,20 @@ class ParentAttendanceReportScreen extends StatefulWidget {
 
 class _ParentAttendanceReportScreenState
     extends State<ParentAttendanceReportScreen> {
-  int selectedTerm = 0;
-
-  final List<String> pattern = [
-    'P',
-    'P',
-    'P',
-    'A',
-    'P',
-    'P',
-    'P',
-    'P',
-    'L',
-    'P',
-    'P',
-    'A',
-    'P',
-    'P',
-    'P',
-    'P',
-    'P',
-    'P',
-    'P',
-    'P',
-    'P',
-    'P',
-    'W',
-    'W',
-    'W',
-    'W',
-    'W',
-    'W',
-  ];
-
-  final List<Map<String, String>> recentHistory = [
-    {
-      'date': 'Today, 24 Oct',
-      'time': 'Thursday • 08:45 AM',
-      'status': 'Present',
-    },
-    {
-      'date': '23 Oct 2024',
-      'time': 'Wednesday • 08:50 AM',
-      'status': 'Present',
-    },
-    {'date': '22 Oct 2024', 'time': 'Tuesday • 09:12 AM', 'status': 'Late'},
-    {'date': '21 Oct 2024', 'time': 'Monday • 08:47 AM', 'status': 'Present'},
-  ];
+  late int selectedTerm = widget.initialTerm;
+  List<AttendanceRecord> _filtered = [];
+  Map<String, int> _stats = AttendanceRecord.summary([]);
+  String _studentName = '';
+  List<String> pattern = [];
+  List<Map<String, String>> recentHistory = [];
+  int get _streak {
+    int count = 0;
+    for (final record in _filtered) {
+      if (record.status == 'A') break;
+      count++;
+    }
+    return count;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,75 +77,124 @@ class _ParentAttendanceReportScreenState
         ],
       ),
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
-          child: Column(
-            children: [
-              _buildTermSelector(),
-
-              const SizedBox(height: 28),
-
-              _buildOverallCard(),
-
-              const SizedBox(height: 14),
-
-              Row(
+      body: StudentAttendanceView(
+        initialStudentId: widget.initialStudentId,
+        builder: (student, records) {
+          _studentName = student['name'] as String;
+          _filtered = records.where((r) => r.term == selectedTerm + 1).toList();
+          _stats = AttendanceRecord.summary(_filtered);
+          final month = _filtered.isEmpty
+              ? DateTime.now()
+              : _filtered.first.date;
+          final marks = {
+            for (final r in _filtered.where(
+              (r) => r.date.year == month.year && r.date.month == month.month,
+            ))
+              r.date.day: r.status,
+          };
+          pattern = List.filled(
+            DateTime(month.year, month.month, 1).weekday - 1,
+            '',
+            growable: true,
+          );
+          for (
+            int day = 1;
+            day <= DateTime(month.year, month.month + 1, 0).day;
+            day++
+          ) {
+            pattern.add(
+              marks[day] ??
+                  (DateTime(month.year, month.month, day).weekday > 5
+                      ? 'W'
+                      : ''),
+            );
+          }
+          recentHistory = _filtered
+              .map(
+                (r) => {
+                  'date': '${r.date.year}-${r.date.month}-${r.date.day}',
+                  'time': 'Term ${r.term}',
+                  'status': r.status == 'P'
+                      ? 'Present'
+                      : r.status == 'A'
+                      ? 'Absent'
+                      : 'Late',
+                },
+              )
+              .toList();
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: _statCard(
-                      icon: Icons.check_circle_outline,
-                      title: 'Present',
-                      value: '138',
-                      color: const Color(0xFF10B981),
-                    ),
+                  _buildTermSelector(),
+
+                  const SizedBox(height: 28),
+
+                  _buildOverallCard(),
+
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _statCard(
+                          icon: Icons.check_circle_outline,
+                          title: 'Present',
+                          value: '${_stats['present']}',
+                          color: const Color(0xFF10B981),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _statCard(
+                          icon: Icons.cancel_outlined,
+                          title: 'Absent',
+                          value: '${_stats['absent']}',
+                          color: const Color(0xFFF43F5E),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statCard(
-                      icon: Icons.cancel_outlined,
-                      title: 'Absent',
-                      value: '10',
-                      color: const Color(0xFFF43F5E),
-                    ),
+
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _statCard(
+                          icon: Icons.access_time,
+                          title: 'Late',
+                          value: '${_stats['late']}',
+                          color: const Color(0xFFF59E0B),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _statCard(
+                          icon: Icons.calendar_month_outlined,
+                          title: 'Total Days',
+                          value: '${_stats['totalDays']}',
+                          color: const Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
                   ),
+
+                  const SizedBox(height: 16),
+
+                  _buildPatternCard(),
+
+                  const SizedBox(height: 16),
+
+                  if (_filtered.isEmpty)
+                    const Text('No attendance recorded for this term.'),
+                  _buildRecentHistory(),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _statCard(
-                      icon: Icons.access_time,
-                      title: 'Late',
-                      value: '2',
-                      color: const Color(0xFFF59E0B),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statCard(
-                      icon: Icons.calendar_month_outlined,
-                      title: 'Total Days',
-                      value: '150',
-                      color: const Color(0xFF2563EB),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              _buildPatternCard(),
-
-              const SizedBox(height: 16),
-
-              _buildRecentHistory(),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -245,7 +270,7 @@ class _ParentAttendanceReportScreenState
                   width: 145,
                   height: 145,
                   child: CircularProgressIndicator(
-                    value: 0.92,
+                    value: _stats['attendance']! / 100,
                     strokeWidth: 11,
                     backgroundColor: const Color(0xFFE8F7F2),
                     valueColor: const AlwaysStoppedAnimation<Color>(
@@ -253,11 +278,11 @@ class _ParentAttendanceReportScreenState
                     ),
                   ),
                 ),
-                const Column(
+                Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '92%',
+                      '${_stats['attendance']}%',
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.w800,
@@ -283,16 +308,16 @@ class _ParentAttendanceReportScreenState
                 color: const Color(0xFFE9FAF4),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Text('🔥', style: TextStyle(fontSize: 20)),
+                      const Icon(Icons.local_fire_department_outlined),
                       SizedBox(width: 7),
                       Expanded(
                         child: Text(
-                          '12-Day Active Streak',
+                          '$_streak-Day Active Streak',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -306,7 +331,7 @@ class _ParentAttendanceReportScreenState
                   SizedBox(height: 10),
 
                   Text(
-                    'Excellent! Sarah has attended 12 consecutive days of school.',
+                    '$_studentName has attended $_streak consecutive recorded school days.',
                     style: TextStyle(
                       height: 1.3,
                       fontSize: 11,
@@ -396,7 +421,7 @@ class _ParentAttendanceReportScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'October Pattern',
+                      'Attendance Pattern',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -566,7 +591,7 @@ class _ParentAttendanceReportScreenState
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: recentHistory.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, index) =>
                 const Divider(height: 1, color: Color(0xFFDCEBE6)),
             itemBuilder: (context, index) {
               final record = recentHistory[index];
