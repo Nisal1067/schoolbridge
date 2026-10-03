@@ -6,6 +6,7 @@ import '../../dashboards/screens/parent_dashboard.dart';
 import '../../dashboards/screens/student_dashboard.dart';
 import '../../dashboards/screens/teacher_dashboard.dart';
 import '../../models/user_role.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
 
   bool hidePassword = true;
+  bool isLoading = false;
+  final authService = AuthService();
 
   @override
   void dispose() {
@@ -30,31 +33,47 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void login() {
-    Widget dashboard;
+  Future<void> login() async {
+    if (isLoading) return;
+    setState(() => isLoading = true);
+    try {
+      final role = await authService.login(
+        emailController.text,
+        passwordController.text,
+      );
+      if (!mounted) return;
+      Widget dashboard;
 
-    switch (selectedRole) {
-      case UserRole.student:
-        dashboard = const StudentDashboard();
-        break;
+      switch (role) {
+        case UserRole.student:
+          dashboard = const StudentDashboard();
+          break;
 
-      case UserRole.teacher:
-        dashboard = const TeacherDashboard();
-        break;
+        case UserRole.teacher:
+          dashboard = const TeacherDashboard();
+          break;
 
-      case UserRole.parent:
-        dashboard = const ParentDashboard();
-        break;
+        case UserRole.parent:
+          dashboard = const ParentDashboard();
+          break;
 
-      case UserRole.admin:
-        dashboard = const AdminDashboard();
-        break;
+        case UserRole.admin:
+          dashboard = const AdminDashboard();
+          break;
+      }
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => dashboard),
+        (_) => false,
+      );
+    } on AuthException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => dashboard),
-    );
   }
 
   @override
@@ -206,14 +225,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          onPressed: login,
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+                          onPressed: isLoading ? null : login,
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                     ],

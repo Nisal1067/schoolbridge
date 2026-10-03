@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/widgets/logout_button.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
+import '../../features/attendance/parent_attendance_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -22,6 +25,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: AppBar(
         title: const Text('SchoolBridge'),
         actions: [
+          const LogoutButton(),
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.notifications_none),
@@ -136,7 +140,14 @@ class _StudentHome extends StatelessWidget {
           icon: Icons.fact_check,
           title: 'Attendance',
           subtitle: 'View attendance status',
-          onTap: () => onNavigate(3),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ParentAttendanceScreen(),
+              ),
+            );
+          },
         ),
       ],
     );

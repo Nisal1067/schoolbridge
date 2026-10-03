@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/widgets/logout_button.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
@@ -19,7 +21,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Dashboard')),
+      appBar: AppBar(
+        title: const Text('Admin Dashboard'),
+        actions: const [LogoutButton()],
+      ),
 
       body: selectedIndex == 0
           ? _AdminHome(
