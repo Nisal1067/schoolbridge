@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'models/attendance_record.dart';
+import 'widgets/student_attendance_view.dart';
+
 import 'parent_attendance_report_screen.dart';
 
 class ParentAttendanceScreen extends StatefulWidget {
@@ -12,36 +15,8 @@ class ParentAttendanceScreen extends StatefulWidget {
 class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   int selectedTerm = 0;
 
-  // Temporary frontend data.
-  // Later this will come from the backend/database.
-  final List<Map<String, dynamic>> termData = [
-    {
-      'attendance': 92,
-      'present': 138,
-      'absent': 10,
-      'late': 2,
-      'totalDays': 150,
-    },
-    {
-      'attendance': 95,
-      'present': 142,
-      'absent': 6,
-      'late': 2,
-      'totalDays': 150,
-    },
-    {
-      'attendance': 90,
-      'present': 135,
-      'absent': 12,
-      'late': 3,
-      'totalDays': 150,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final data = termData[selectedTerm];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6F8),
 
@@ -81,88 +56,99 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
         ],
       ),
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // ------------------------------------------------
-              // TERM SELECTOR
-              // ------------------------------------------------
-
-              _buildTermSelector(),
-
-              const SizedBox(height: 20),
-
-              // ------------------------------------------------
-              // OVERALL ATTENDANCE
-              // ------------------------------------------------
-              _buildOverallAttendance(data['attendance'] as int),
-
-              const SizedBox(height: 14),
-
-              // ------------------------------------------------
-              // STATISTICS
-              // ------------------------------------------------
-              Row(
+      body: StudentAttendanceView(
+        builder: (student, records) {
+          final filtered = records.where((r) => r.term == selectedTerm + 1);
+          final data = AttendanceRecord.summary(filtered);
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: _buildStatisticCard(
-                      icon: Icons.person_outline,
-                      title: 'Present',
-                      value: '${data['present']}',
-                      color: const Color(0xFF25C98A),
-                    ),
+                  // ------------------------------------------------
+                  // TERM SELECTOR
+                  // ------------------------------------------------
+
+                  _buildTermSelector(),
+
+                  const SizedBox(height: 20),
+
+                  // ------------------------------------------------
+                  // OVERALL ATTENDANCE
+                  // ------------------------------------------------
+                  _buildOverallAttendance(data['attendance'] as int),
+
+                  const SizedBox(height: 14),
+
+                  // ------------------------------------------------
+                  // STATISTICS
+                  // ------------------------------------------------
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatisticCard(
+                          icon: Icons.person_outline,
+                          title: 'Present',
+                          value: '${data['present']}',
+                          color: const Color(0xFF25C98A),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: _buildStatisticCard(
+                          icon: Icons.cancel_outlined,
+                          title: 'Absent',
+                          value: '${data['absent']}',
+                          color: const Color(0xFFFF5B65),
+                        ),
+                      ),
+                    ],
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 12),
 
-                  Expanded(
-                    child: _buildStatisticCard(
-                      icon: Icons.cancel_outlined,
-                      title: 'Absent',
-                      value: '${data['absent']}',
-                      color: const Color(0xFFFF5B65),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatisticCard(
+                          icon: Icons.access_time,
+                          title: 'Late',
+                          value: '${data['late']}',
+                          color: const Color(0xFFF2B632),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: _buildStatisticCard(
+                          icon: Icons.calendar_month_outlined,
+                          title: 'Total Days',
+                          value: '${data['totalDays']}',
+                          color: const Color(0xFF2F67EA),
+                        ),
+                      ),
+                    ],
                   ),
+
+                  const SizedBox(height: 16),
+
+                  // ------------------------------------------------
+                  // VIEW ATTENDANCE REPORT
+                  // ------------------------------------------------
+                  if (filtered.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text('No attendance recorded for this term.'),
+                    ),
+                  _buildReportButton(context, student['id'] as String),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatisticCard(
-                      icon: Icons.access_time,
-                      title: 'Late',
-                      value: '${data['late']}',
-                      color: const Color(0xFFF2B632),
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Expanded(
-                    child: _buildStatisticCard(
-                      icon: Icons.calendar_month_outlined,
-                      title: 'Total Days',
-                      value: '${data['totalDays']}',
-                      color: const Color(0xFF2F67EA),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // ------------------------------------------------
-              // VIEW ATTENDANCE REPORT
-              // ------------------------------------------------
-              _buildReportButton(context),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -339,7 +325,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   // REPORT BUTTON
   // ============================================================
 
-  Widget _buildReportButton(BuildContext context) {
+  Widget _buildReportButton(BuildContext context, String studentId) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
@@ -349,7 +335,10 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ParentAttendanceReportScreen(),
+              builder: (context) => ParentAttendanceReportScreen(
+                initialTerm: selectedTerm,
+                initialStudentId: studentId,
+              ),
             ),
           );
         },

@@ -1,31 +1,91 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'models/attendance_record.dart';
+import 'services/attendance_service.dart';
+
 class AddAttendanceScreen extends StatefulWidget {
-  const AddAttendanceScreen({super.key});
+  final Map<String, dynamic>? classroom;
+  final List<AttendanceRecord> existing;
+  const AddAttendanceScreen({
+    super.key,
+    this.classroom,
+    this.existing = const [],
+  });
 
   @override
   State<AddAttendanceScreen> createState() => _AddAttendanceScreenState();
 }
 
 class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
-  final List<Map<String, String>> students = [
-    {'initials': 'NS', 'name': 'Nipuni Silva', 'id': '1023', 'status': ''},
-    {'initials': 'AP', 'name': 'Arjun Perera', 'id': '1045', 'status': ''},
-    {'initials': 'SJ', 'name': 'Sarah Jenkins', 'id': '1089', 'status': ''},
-    {'initials': 'MS', 'name': 'Minoli de Silva', 'id': '1102', 'status': ''},
-    {'initials': 'RA', 'name': 'Roshan Alwis', 'id': '1154', 'status': ''},
-  ];
+  final AttendanceService _attendanceService = AttendanceService();
+
+  bool _isSaving = false;
+
+  final List<Map<String, String>> students = [];
+  Map<String, dynamic>? _classroom;
+  bool _loading = true;
+  String? _error;
+  DateTime _date = DateTime.now();
+  int _term = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final classes = widget.classroom == null
+          ? await _attendanceService.teacherClasses()
+          : [widget.classroom!];
+      if (classes.isEmpty) {
+        throw StateError('No class assigned to your account.');
+      }
+      _classroom = classes.first;
+      final roster = await _attendanceService.studentsForClass(_classroom!);
+      if (widget.existing.isNotEmpty) {
+        _date = widget.existing.first.date;
+        _term = widget.existing.first.term;
+      }
+      final statuses = {for (final r in widget.existing) r.studentId: r.status};
+      students.addAll(
+        roster.map((s) {
+          final name = s['name'] as String;
+          return {
+            'id': s['id'] as String,
+            'name': name,
+            'initials': name
+                .split(' ')
+                .where((p) => p.isNotEmpty)
+                .take(2)
+                .map((p) => p[0])
+                .join(),
+            'status': statuses[s['id']] ?? '',
+          };
+        }),
+      );
+    } catch (_) {
+      _error = 'Could not load your class and students. Check class assignment and permissions.';
+    }
+    if (mounted) setState(() => _loading = false);
+  }
 
   // ------------------------------------------------------------
   // SAVE ATTENDANCE
   // ------------------------------------------------------------
 
   void _saveAttendance() {
+    if (_isSaving || students.isEmpty) {
+      return;
+    }
+
     final unmarkedStudents = students
         .where((student) => student['status']!.isEmpty)
         .toList();
 
-    // Validate whether all students are marked
+    // Validate whether all students are marked.
     if (unmarkedStudents.isNotEmpty) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
@@ -43,7 +103,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       return;
     }
 
-    // Calculate attendance summary
+    // Calculate attendance summary.
     final presentCount = students
         .where((student) => student['status'] == 'P')
         .length;
@@ -60,6 +120,41 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
   }
 
   // ------------------------------------------------------------
+  // FIRESTORE SAVE
+  // ------------------------------------------------------------
+
+  Future<void> _persistAttendance() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      throw Exception('User is not logged in.');
+    }
+
+    final now = _date;
+
+    // Store only the day for attendance.
+    final attendanceDate = DateTime(now.year, now.month, now.day);
+
+    final records = students.map((student) {
+      return AttendanceRecord(
+        id: {
+          for (final r in widget.existing) r.studentId: r.documentId,
+        }[student['id']],
+        studentId: student['id']!,
+        studentName: student['name']!,
+        classId: _classroom!['id'] as String,
+        schoolId: _classroom!['schoolId'] as String,
+        teacherId: currentUser.uid,
+        date: attendanceDate,
+        status: student['status']!,
+        term: _term,
+      );
+    }).toList();
+
+    await _attendanceService.saveAttendance(records);
+  }
+
+  // ------------------------------------------------------------
   // CONFIRMATION DIALOG
   // ------------------------------------------------------------
 
@@ -72,7 +167,6 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-
           title: const Text(
             'Save Attendance?',
             style: TextStyle(
@@ -81,18 +175,15 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
-
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Please confirm the attendance for Grade 10A.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF737986)),
+              Text(
+                'Please confirm the attendance for ${_classroom?['name']}.',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF737986)),
               ),
-
               const SizedBox(height: 20),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -103,7 +194,6 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
               ),
             ],
           ),
-
           actions: [
             TextButton(
               onPressed: () {
@@ -117,23 +207,60 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                 ),
               ),
             ),
-
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
+              onPressed: _isSaving
+                  ? null
+                  : () async {
+                      Navigator.pop(dialogContext);
 
-                // Database CREATE logic will be added later.
+                      setState(() {
+                        _isSaving = true;
+                      });
 
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      try {
+                        await _persistAttendance();
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: Color(0xFF25A875),
-                    content: Text('Attendance saved successfully.'),
-                  ),
-                );
-              },
+                        if (!mounted) {
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Color(0xFF25A875),
+                            content: Text('Attendance saved successfully.'),
+                          ),
+                        );
+                        Navigator.pop(context, true);
+                      } catch (error) {
+                        debugPrint('Attendance save error: $error');
+
+                        if (!mounted) {
+                          return;
+                        }
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Color(0xFFFF5B65),
+                            content: Text(
+                              'Could not save attendance. '
+                              'Please try again.',
+                            ),
+                          ),
+                        );
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isSaving = false;
+                          });
+                        }
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2F67EA),
                 foregroundColor: Colors.white,
@@ -177,9 +304,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
             ),
           ),
         ),
-
         const SizedBox(height: 6),
-
         Text(
           label,
           style: const TextStyle(fontSize: 11, color: Color(0xFF737986)),
@@ -194,154 +319,219 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
-
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 20,
-            color: Color(0xFF151B2B),
+    return PopScope(
+      canPop: !_isSaving,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F6F8),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: _isSaving
+                ? null
+                : () {
+                    Navigator.pop(context);
+                  },
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              size: 20,
+              color: Color(0xFF151B2B),
+            ),
+          ),
+          title: Text(
+            widget.existing.isEmpty ? 'Add Attendance' : 'Update Attendance',
+            style: const TextStyle(
+              color: Color(0xFF151B2B),
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+            ? Center(child: Text(_error!, textAlign: TextAlign.center))
+            : SafeArea(
+                child: Column(
+                  children: [
+                    // ----------------------------------------------------
+                    // CLASS INFORMATION
+                    // ----------------------------------------------------
 
-        title: const Text(
-          'Add Attendance',
-          style: TextStyle(
-            color: Color(0xFF151B2B),
-            fontSize: 19,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ----------------------------------------------------
-            // CLASS INFORMATION
-            // ----------------------------------------------------
-
-            Container(
-              width: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Grade 10A',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF151B2B),
+                    Container(
+                      width: double.infinity,
+                      color: Colors.white,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${_classroom?['name']}',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF151B2B),
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Select attendance for each student',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF9297A1),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
 
-                        SizedBox(height: 3),
-
-                        Text(
-                          'Select attendance for each student',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF9297A1),
+                          // TODAY LABEL
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF1FF),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 15,
+                                  color: Color(0xFF2F67EA),
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  '${_date.day}/${_date.month}/${_date.year}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2F67EA),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // TODAY LABEL
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF1FF),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          size: 15,
-                          color: Color(0xFF2F67EA),
-                        ),
-
-                        SizedBox(width: 6),
-
-                        Text(
-                          'Today',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2F67EA),
+                    // ----------------------------------------------------
+                    // STUDENT LIST
+                    // ----------------------------------------------------
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          TextButton.icon(
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text(
+                              '${_date.year}-${_date.month}-${_date.day}',
+                            ),
+                            onPressed: _isSaving || widget.existing.isNotEmpty
+                                ? null
+                                : () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: _date,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null && mounted) {
+                                      setState(() => _date = date);
+                                    }
+                                  },
                           ),
+                          const Spacer(),
+                          DropdownButton<int>(
+                            value: _term,
+                            items: [1, 2, 3]
+                                .map(
+                                  (t) => DropdownMenuItem(
+                                    value: t,
+                                    child: Text('Term $t'),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: _isSaving
+                                ? null
+                                : (t) => setState(() => _term = t!),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: students.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No students enrolled in this class.',
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(12),
+                              itemCount: students.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 9),
+                              itemBuilder: (context, index) {
+                                return _buildStudentCard(index);
+                              },
+                            ),
+                    ),
+
+                    // ----------------------------------------------------
+                    // SAVE BUTTON
+                    // ----------------------------------------------------
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFE9EBEF)),
                         ),
-                      ],
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSaving || students.isEmpty
+                              ? null
+                              : _saveAttendance,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2F67EA),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                          ),
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.3,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Save Attendance',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ----------------------------------------------------
-            // STUDENT LIST
-            // ----------------------------------------------------
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(12),
-                itemCount: students.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 9),
-                itemBuilder: (context, index) {
-                  return _buildStudentCard(index);
-                },
-              ),
-            ),
-
-            // ----------------------------------------------------
-            // SAVE BUTTON
-            // ----------------------------------------------------
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFE9EBEF))),
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _saveAttendance,
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2F67EA),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                  ),
-
-                  child: const Text(
-                    'Save Attendance',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -368,7 +558,6 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       ),
       child: Row(
         children: [
-          // Student initials
           CircleAvatar(
             radius: 20,
             backgroundColor: const Color(0xFFDCEBFF),
@@ -381,10 +570,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
               ),
             ),
           ),
-
           const SizedBox(width: 11),
-
-          // Student name + ID
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,9 +585,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
                 const SizedBox(height: 2),
-
                 Text(
                   'ID: ${student['id']}',
                   style: const TextStyle(
@@ -412,18 +596,10 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
               ],
             ),
           ),
-
-          // Present
           _buildStatusButton(index, 'P'),
-
           const SizedBox(width: 6),
-
-          // Absent
           _buildStatusButton(index, 'A'),
-
           const SizedBox(width: 6),
-
-          // Late
           _buildStatusButton(index, 'L'),
         ],
       ),
@@ -448,27 +624,25 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
     }
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          students[index]['status'] = status;
-        });
-      },
-
+      onTap: _isSaving
+          ? null
+          : () {
+              setState(() {
+                students[index]['status'] = status;
+              });
+            },
       borderRadius: BorderRadius.circular(8),
-
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 27,
         height: 27,
         alignment: Alignment.center,
-
         decoration: BoxDecoration(
           color: selected
               ? color.withValues(alpha: 0.18)
               : const Color(0xFFF1F2F4),
           borderRadius: BorderRadius.circular(8),
         ),
-
         child: Text(
           status,
           style: TextStyle(

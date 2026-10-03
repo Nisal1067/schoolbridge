@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "students",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parentIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "schoolId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
