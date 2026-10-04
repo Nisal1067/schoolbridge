@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../auth/widgets/logout_button.dart';
 
 import '../../features/attendance/attendance_screen.dart';
-import '../../features/attendance/add_attendance_screen.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});

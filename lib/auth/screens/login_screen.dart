@@ -40,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = await authService.login(
         emailController.text,
         passwordController.text,
+        selectedRole: selectedRole,
       );
       if (!mounted) return;
       Widget dashboard;
