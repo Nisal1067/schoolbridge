@@ -1,0 +1,78 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userData() {
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      ).data;
+    }
+
+    function isActiveTeacher() {
+      return signedIn()
+        && userData().active == true
+        && userData().role == 'teacher';
+    }
+
+    function active() { return signedIn() && userData().active == true; }
+    function teaches(classId, schoolId) {
+      let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
+      return isActiveTeacher() && userData().schoolId == schoolId
+        && classroom.schoolId == schoolId && classroom.teacherId == request.auth.uid;
+    }
+    function linked(studentId, schoolId) {
+      let student = get(/databases/$(database)/documents/students/$(studentId)).data;
+      return active() && userData().schoolId == schoolId && student.schoolId == schoolId
+        && ((userData().role == 'student' && studentId == request.auth.uid)
+          || (userData().role == 'parent' && request.auth.uid in student.parentIds));
+    }
+    function validAttendance(data) {
+      let student = get(/databases/$(database)/documents/students/$(data.studentId)).data;
+      return data.keys().hasAll(['studentId', 'studentName', 'classId', 'schoolId', 'teacherId', 'date', 'status', 'term', 'updatedAt'])
+        && data.keys().hasOnly(['studentId', 'studentName', 'classId', 'schoolId', 'teacherId', 'date', 'status', 'term', 'updatedAt'])
+        && data.studentName is string && data.teacherId == request.auth.uid
+        && teaches(data.classId, data.schoolId)
+        && student.classId == data.classId && student.schoolId == data.schoolId
+        && data.studentName == student.name && data.date is timestamp
+        && data.status in ['P', 'A', 'L'] && data.term is int && data.term >= 1 && data.term <= 3
+        && data.updatedAt == request.time;
+    }
+
+    match /classes/{classId} {
+      allow read: if isActiveTeacher() && resource.data.teacherId == request.auth.uid
+        && resource.data.schoolId == userData().schoolId;
+      allow write: if false;
+    }
+    match /students/{studentId} {
+      allow read: if active() && resource.data.schoolId == userData().schoolId
+        && ((userData().role == 'student' && studentId == request.auth.uid)
+          || (userData().role == 'parent' && request.auth.uid in resource.data.parentIds)
+          || teaches(resource.data.classId, resource.data.schoolId));
+      allow write: if false;
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn()
+        && request.auth.uid == uid;
+
+      allow list, write: if false;
+    }
+
+    match /attendance/{attendanceId} {
+      allow create: if validAttendance(request.resource.data);
+      allow update: if validAttendance(request.resource.data)
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.classId == resource.data.classId
+        && request.resource.data.schoolId == resource.data.schoolId
+        && request.resource.data.date == resource.data.date;
+      allow read: if teaches(resource.data.classId, resource.data.schoolId)
+        || linked(resource.data.studentId, resource.data.schoolId);
+      allow delete: if teaches(resource.data.classId, resource.data.schoolId);
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../auth/screens/login_screen.dart';
+import '../../auth/widgets/logout_button.dart';
 import '../../models/user_role.dart';
 
 import '../academic/academic_screen.dart';
@@ -11,48 +11,18 @@ import '../user_communication/communication_screen.dart';
 class DashboardScreen extends StatelessWidget {
   final UserRole role;
 
-  const DashboardScreen({
-    super.key,
-    required this.role,
-  });
+  const DashboardScreen({super.key, required this.role});
 
-  void openScreen(
-    BuildContext context,
-    Widget screen,
-  ) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => screen,
-      ),
-    );
+  void openScreen(BuildContext context, Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '${role.displayName} Dashboard',
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const LoginScreen(),
-                ),
-                (route) => false,
-              );
-            },
-            icon: const Icon(
-              Icons.logout,
-            ),
-          ),
-        ],
+        title: Text('${role.displayName} Dashboard'),
+        actions: [const LogoutButton()],
       ),
 
       body: ListView(
@@ -62,24 +32,17 @@ class DashboardScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Welcome!',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 6),
 
-                  Text(
-                    'Logged in as ${role.displayName}',
-                  ),
+                  Text('Logged in as ${role.displayName}'),
                 ],
               ),
             ),
@@ -89,42 +52,28 @@ class DashboardScreen extends StatelessWidget {
 
           _ModuleCard(
             title: 'Academic Progress',
-            subtitle:
-                'Marks, results and student progress',
+            subtitle: 'Marks, results and student progress',
             icon: Icons.bar_chart,
             onTap: () {
-              openScreen(
-                context,
-                AcademicScreen(role: role),
-              );
+              openScreen(context, AcademicScreen(role: role));
             },
           ),
 
           _ModuleCard(
             title: 'Attendance',
-            subtitle:
-                'Attendance records and reports',
+            subtitle: 'Attendance records and reports',
             icon: Icons.fact_check_outlined,
             onTap: () {
-              openScreen(
-                context,
-                AttendanceScreen(role: role),
-              );
+              openScreen(context, const AttendanceScreen());
             },
           ),
 
           _ModuleCard(
             title: 'Homework & Announcements',
-            subtitle:
-                'Homework tasks and school updates',
+            subtitle: 'Homework tasks and school updates',
             icon: Icons.assignment_outlined,
             onTap: () {
-              openScreen(
-                context,
-                HomeworkAnnouncementsScreen(
-                  role: role,
-                ),
-              );
+              openScreen(context, HomeworkAnnouncementsScreen(role: role));
             },
           ),
 
@@ -140,12 +89,7 @@ class DashboardScreen extends StatelessWidget {
                   ? Icons.manage_accounts
                   : Icons.chat_bubble_outline,
               onTap: () {
-                openScreen(
-                  context,
-                  UserCommunicationScreen(
-                    role: role,
-                  ),
-                );
+                openScreen(context, UserCommunicationScreen(role: role));
               },
             ),
         ],
@@ -170,9 +114,7 @@ class _ModuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(
-        bottom: 14,
-      ),
+      margin: const EdgeInsets.only(bottom: 14),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
@@ -180,24 +122,19 @@ class _ModuleCard extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 26,
-                child: Icon(icon),
-              ),
+              CircleAvatar(radius: 26, child: Icon(icon)),
 
               const SizedBox(width: 16),
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
@@ -208,9 +145,7 @@ class _ModuleCard extends StatelessWidget {
                 ),
               ),
 
-              const Icon(
-                Icons.chevron_right,
-              ),
+              const Icon(Icons.chevron_right),
             ],
           ),
         ),
