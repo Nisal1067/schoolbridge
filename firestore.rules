@@ -56,11 +56,25 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /users/{uid} {
-      allow get: if signedIn()
-        && request.auth.uid == uid;
+    function isActiveAdmin() {
+      return signedIn()
+        && userData().active == true
+        && userData().role == 'admin';
+    }
 
-      allow list, write: if false;
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if isActiveAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if signedIn();
+      allow write: if isActiveAdmin() || isActiveTeacher();
+    }
+
+    match /reports/{reportId} {
+      allow read: if signedIn();
+      allow write: if isActiveAdmin() || isActiveTeacher();
     }
 
     match /attendance/{attendanceId} {
