@@ -59,9 +59,13 @@ class _UsersListScreenState extends State<UsersListScreen> {
       if (_selectedFilter == 'Teachers' && user.role.toLowerCase() != 'teacher') {
         return false;
       }
-      if (_selectedFilter == 'Staff' &&
-          user.role.toLowerCase() != 'staff' &&
-          user.role.toLowerCase() != 'admin') {
+      if ((_selectedFilter == 'Parents' || _selectedFilter == 'Parent') &&
+          user.role.toLowerCase() != 'parent') {
+        return false;
+      }
+      if ((_selectedFilter == 'Admin' || _selectedFilter == 'Admins' || _selectedFilter == 'Staff') &&
+          user.role.toLowerCase() != 'admin' &&
+          user.role.toLowerCase() != 'staff') {
         return false;
       }
 
@@ -115,7 +119,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                         });
                       },
                       decoration: const InputDecoration(
-                        hintText: 'Search students, teachers, staff...',
+                        hintText: 'Search students, teachers, parents, admins...',
                         hintStyle: TextStyle(
                           color: Color(0xFF94A3B8),
                           fontSize: 14,

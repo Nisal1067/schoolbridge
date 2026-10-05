@@ -23,7 +23,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
   bool _obscurePassword = true;
   bool _isSubmitting = false;
 
-  final List<String> _roles = ['Student', 'Teacher', 'Staff'];
+  final List<String> _roles = ['Student', 'Teacher', 'Parent', 'Admin'];
 
   @override
   void dispose() {
@@ -136,7 +136,11 @@ class _AddUserScreenState extends State<AddUserScreen> {
           : _phoneController.text.trim(),
       role: _selectedRole,
       gradeOrClass: _gradeController.text.trim().isEmpty
-          ? (_selectedRole == 'Student' ? 'Grade 10-A' : (_selectedRole == 'Teacher' ? 'Mathematics' : 'General'))
+          ? (_selectedRole == 'Student'
+              ? 'Grade 10-A'
+              : (_selectedRole == 'Teacher'
+                  ? 'Mathematics'
+                  : (_selectedRole == 'Parent' ? 'Parent' : 'Administration')))
           : _gradeController.text.trim(),
       status: 'Active',
       joinedDate: joinedString,

@@ -5,8 +5,8 @@ class UserItem {
   final String name;
   final String email;
   final String phone;
-  final String role; // 'Student', 'Teacher', 'Staff', 'Admin'
-  final String gradeOrClass; // e.g. 'Grade 10-A', 'Mathematics', 'Office'
+  final String role; // 'Student', 'Teacher', 'Admin'
+  final String gradeOrClass; // e.g. 'Grade 10-A', 'Mathematics', 'Administration'
   final String status; // 'Active', 'Inactive'
   final String joinedDate;
 
@@ -58,11 +58,13 @@ class UserItem {
   }
 
   Map<String, dynamic> toMap() {
+    final roleLower = role.trim().toLowerCase();
+    final cleanRole = roleLower == 'staff' ? 'admin' : roleLower;
     return {
       'name': name,
       'email': email,
       'phone': phone,
-      'role': role.toLowerCase(),
+      'role': cleanRole,
       'gradeOrClass': gradeOrClass,
       'class': gradeOrClass,
       'schoolId': 'school01',
@@ -76,9 +78,17 @@ class UserItem {
   factory UserItem.fromMap(Map<String, dynamic> map, String id) {
     String parsedRole = 'Student';
     if (map['role'] != null) {
-      final r = map['role'].toString().trim();
-      if (r.isNotEmpty) {
-        parsedRole = r[0].toUpperCase() + r.substring(1).toLowerCase();
+      final r = map['role'].toString().trim().toLowerCase();
+      if (r == 'admin' || r == 'staff' || r == 'administrator') {
+        parsedRole = 'Admin';
+      } else if (r == 'teacher' || r == 'faculty') {
+        parsedRole = 'Teacher';
+      } else if (r == 'parent' || r == 'guardian') {
+        parsedRole = 'Parent';
+      } else if (r == 'student') {
+        parsedRole = 'Student';
+      } else if (r.isNotEmpty) {
+        parsedRole = r[0].toUpperCase() + r.substring(1);
       }
     }
 

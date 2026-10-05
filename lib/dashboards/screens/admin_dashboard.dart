@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../auth/widgets/logout_button.dart';
 import '../../core/widgets/placeholder.dart';
@@ -54,28 +56,57 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 color: const Color(0xFF2563EB),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white24,
-                      child: Icon(Icons.admin_panel_settings, size: 36, color: Colors.white),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'SchoolBridge Admin',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'admin@schoolbridge.lk',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
+                child: Builder(
+                  builder: (context) {
+                    final user = FirebaseAuth.instance.currentUser;
+                    final emailStr = user?.email ?? 'admin@schoolbridge.lk';
+                    final defaultName = user?.displayName ??
+                        (emailStr.contains('@') ? emailStr.split('@').first : 'Admin');
+
+                    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      stream: user != null
+                          ? FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .snapshots()
+                          : null,
+                      builder: (context, snapshot) {
+                        String adminName = defaultName;
+                        if (snapshot.hasData && snapshot.data!.exists) {
+                          final data = snapshot.data!.data();
+                          if (data != null &&
+                              data['name'] != null &&
+                              data['name'].toString().trim().isNotEmpty) {
+                            adminName = data['name'].toString().trim();
+                          }
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.white24,
+                              child: Icon(Icons.admin_panel_settings, size: 36, color: Colors.white),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              adminName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              emailStr,
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
               ListTile(

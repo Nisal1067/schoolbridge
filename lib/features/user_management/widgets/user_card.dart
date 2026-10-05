@@ -16,9 +16,10 @@ class UserCard extends StatelessWidget {
       case 'teacher':
         return Icons.school_rounded;
       case 'staff':
-        return Icons.badge_rounded;
       case 'admin':
         return Icons.admin_panel_settings_rounded;
+      case 'parent':
+        return Icons.group_rounded;
       case 'student':
       default:
         return Icons.person_rounded;

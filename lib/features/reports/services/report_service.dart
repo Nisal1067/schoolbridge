@@ -69,7 +69,7 @@ class ReportService {
       subjectBreakdown: {
         'Students': 320,
         'Teachers': 25,
-        'Staff': 12,
+        'Admin': 12,
       },
     ),
   ];
