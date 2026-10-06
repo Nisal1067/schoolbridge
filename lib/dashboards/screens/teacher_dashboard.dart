@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../auth/widgets/logout_button.dart';
 
 import '../../features/attendance/attendance_screen.dart';
-import '../../features/attendance/add_attendance_screen.dart';
+import '../../features/homework_announcements/homework_announcements_screen.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -37,6 +37,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   });
                 },
               )
+            : selectedIndex == 2
+            ? const HomeworkAnnouncementsScreen()
             : _PlaceholderPage(title: pages[selectedIndex]),
       ),
 

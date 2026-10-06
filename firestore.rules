@@ -74,5 +74,108 @@ service cloud.firestore {
         || linked(resource.data.studentId, resource.data.schoolId);
       allow delete: if teaches(resource.data.classId, resource.data.schoolId);
     }
-  }
+
+    function homeworkFields(data) {
+      return data.keys().hasAll(['schoolId', 'classId', 'className', 'teacherId',
+          'subject', 'title', 'description', 'dueDate', 'totalStudents',
+          'submittedCount', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['schoolId', 'classId', 'className', 'teacherId',
+          'subject', 'title', 'description', 'dueDate', 'totalStudents',
+          'submittedCount', 'createdAt', 'updatedAt'])
+        && data.teacherId == request.auth.uid
+        && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 60
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.description is string && data.description.size() <= 2000
+        && data.className is string
+        && data.dueDate is timestamp
+        && data.totalStudents is int && data.totalStudents >= 0
+        && data.submittedCount is int && data.submittedCount >= 0
+        && data.updatedAt == request.time;
+    }
+ 
+    match /homework/{homeworkId} {
+      allow read: if isActiveTeacher()
+        && resource.data.teacherId == request.auth.uid
+        && resource.data.schoolId == userData().schoolId;
+ 
+      allow create: if homeworkFields(request.resource.data)
+        && teaches(request.resource.data.classId, request.resource.data.schoolId)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.submittedCount == 0;
+ 
+      allow update: if isActiveTeacher()
+        && resource.data.teacherId == request.auth.uid
+        && homeworkFields(request.resource.data)
+        && request.resource.data.classId == resource.data.classId
+        && request.resource.data.schoolId == resource.data.schoolId
+        && request.resource.data.className == resource.data.className
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.totalStudents == resource.data.totalStudents
+        && request.resource.data.submittedCount == resource.data.submittedCount;
+ 
+      allow delete: if isActiveTeacher()
+        && resource.data.teacherId == request.auth.uid
+        && resource.data.schoolId == userData().schoolId;
+ 
+      // ---- Submissions: homework/{homeworkId}/submissions/{studentId} ------
+      // Students will get create/update access when the student side is built.
+      match /submissions/{studentId} {
+        function ownsHomework() {
+          return isActiveTeacher()
+            && get(/databases/$(database)/documents/homework/$(homeworkId)).data.teacherId == request.auth.uid;
+        }
+ 
+        allow read: if ownsHomework();
+ 
+        // Teacher can only add a review; nothing the student wrote may change.
+        allow update: if ownsHomework()
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'feedback', 'reviewedAt'])
+          && request.resource.data.status == 'reviewed'
+          && request.resource.data.feedback is string
+          && request.resource.data.feedback.size() <= 1000
+          && request.resource.data.reviewedAt == request.time;
+ 
+        // Needed so deleting a homework can also clear its submissions.
+        allow delete: if ownsHomework();
+      }
+    }
+
+    function announcementShape(data) {
+      return data.keys().hasAll(['schoolId', 'teacherId', 'title', 'body', 'audience',
+          'audienceType', 'classId', 'priority', 'publishAt', 'createdAt'])
+        && data.keys().hasOnly(['schoolId', 'teacherId', 'title', 'body', 'audience',
+          'audienceType', 'classId', 'priority', 'publishAt', 'createdAt'])
+        && data.teacherId == request.auth.uid
+        && isActiveTeacher() && userData().schoolId == data.schoolId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.body is string && data.body.size() > 0 && data.body.size() <= 2000
+        && data.audience is string
+        && data.audienceType in ['all_students', 'parents', 'teachers', 'class']
+        && data.priority in ['normal', 'important', 'urgent']
+        && data.publishAt is timestamp
+        && ((data.audienceType == 'class' && teaches(data.classId, data.schoolId))
+          || (data.audienceType != 'class' && data.classId == ''));
+    }
+ 
+    match /announcements/{announcementId} {
+      allow read: if isActiveTeacher()
+        && resource.data.teacherId == request.auth.uid
+        && resource.data.schoolId == userData().schoolId;
+ 
+      allow create: if announcementShape(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+ 
+      // Edit: same owner and school, original createdAt kept.
+      allow update: if resource.data.teacherId == request.auth.uid
+        && announcementShape(request.resource.data)
+        && request.resource.data.schoolId == resource.data.schoolId
+        && request.resource.data.createdAt == resource.data.createdAt;
+ 
+      allow delete: if isActiveTeacher()
+        && resource.data.teacherId == request.auth.uid
+        && resource.data.schoolId == userData().schoolId;
+    }
+
+      }
 }
