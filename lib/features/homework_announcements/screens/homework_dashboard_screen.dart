@@ -4,6 +4,7 @@ import '../models/homework.dart';
 import '../models/submission.dart';
 import '../services/homework_announcement_service.dart';
 import '../widgets/task_widgets.dart';
+import '../../user_communication/teacher_chat_fab.dart';
 
 enum _StudentState { pending, submitted, reviewed }
 
@@ -76,91 +77,23 @@ class _HomeworkDashboardScreenState extends State<HomeworkDashboardScreen> {
       showTaskSnack(context, '${row.name} has not submitted yet.');
       return;
     }
-    final feedback = TextEditingController(text: submission.feedback);
-    final saved = await showModalBottomSheet<bool>(
+    // The sheet owns its text controller (see _ReviewSheet), so it is only
+    // disposed once the sheet has finished closing. Returns the feedback text,
+    // or null when the teacher dismissed the sheet.
+    final text = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  row.name,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: TaskColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  submission.submittedAt == null
-                      ? 'Submitted'
-                      : 'Submitted ${longDate(submission.submittedAt!)}'
-                            '${submission.isLate(widget.homework.dueDate) ? ' (late)' : ''}',
-                  style: const TextStyle(fontSize: 13, color: TaskColors.grey),
-                ),
-                const SizedBox(height: 16),
-                const FieldLabel("Student's note"),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: TaskColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    submission.note.isEmpty
-                        ? 'No note was added.'
-                        : submission.note,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      height: 1.4,
-                      color: TaskColors.grey,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const FieldLabel('Your feedback'),
-                TextField(
-                  controller: feedback,
-                  minLines: 3,
-                  maxLines: 5,
-                  maxLength: 1000,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: taskInputDecoration(
-                    'Write feedback for the student...',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TaskPrimaryButton(
-                  label: submission.isReviewed
-                      ? 'Update Review'
-                      : 'Mark as Reviewed',
-                  onPressed: () => Navigator.pop(sheetContext, true),
-                ),
-              ],
-            ),
-          ),
-        ),
+      builder: (_) => _ReviewSheet(
+        name: row.name,
+        submission: submission,
+        dueDate: widget.homework.dueDate,
       ),
     );
-    final text = feedback.text;
-    feedback.dispose();
-    if (saved != true || !mounted) return;
+    if (text == null || !mounted) return;
     try {
       await _service.reviewSubmission(
         homeworkId: widget.homework.id!,
@@ -179,6 +112,7 @@ class _HomeworkDashboardScreenState extends State<HomeworkDashboardScreen> {
     return Scaffold(
       backgroundColor: TaskColors.background,
       appBar: taskAppBar('Homework Dashboard'),
+      floatingActionButton: const TeacherChatFab(),
       body: SafeArea(
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _roster,
@@ -223,7 +157,7 @@ class _HomeworkDashboardScreenState extends State<HomeworkDashboardScreen> {
     final visible = rows.where((r) => _filter == null || r.state == _filter);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, kTeacherFabClearance),
       children: [
         Container(
           padding: const EdgeInsets.all(16),
@@ -460,6 +394,117 @@ class _HomeworkDashboardScreenState extends State<HomeworkDashboardScreen> {
                 ),
               ),
               TaskChip(text: label, background: bg, foreground: fg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet where a teacher reads a student's note and writes feedback.
+///
+/// It is its own widget so the [TextEditingController] lives exactly as long
+/// as the sheet. Disposing a controller right after `showModalBottomSheet`
+/// returns is a bug: the sheet is still animating out and its TextField would
+/// use the disposed controller.
+class _ReviewSheet extends StatefulWidget {
+  final String name;
+  final Submission submission;
+  final DateTime dueDate;
+
+  const _ReviewSheet({
+    required this.name,
+    required this.submission,
+    required this.dueDate,
+  });
+
+  @override
+  State<_ReviewSheet> createState() => _ReviewSheetState();
+}
+
+class _ReviewSheetState extends State<_ReviewSheet> {
+  late final TextEditingController _feedback = TextEditingController(
+    text: widget.submission.feedback,
+  );
+
+  @override
+  void dispose() {
+    _feedback.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final submission = widget.submission;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: TaskColors.ink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                submission.submittedAt == null
+                    ? 'Submitted'
+                    : 'Submitted ${longDate(submission.submittedAt!)}'
+                          '${submission.isLate(widget.dueDate) ? ' (late)' : ''}',
+                style: const TextStyle(fontSize: 13, color: TaskColors.grey),
+              ),
+              const SizedBox(height: 16),
+              const FieldLabel("Student's note"),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: TaskColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  submission.note.isEmpty
+                      ? 'No note was added.'
+                      : submission.note,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: TaskColors.grey,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const FieldLabel('Your feedback'),
+              TextField(
+                controller: _feedback,
+                minLines: 3,
+                maxLines: 5,
+                maxLength: 1000,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: taskInputDecoration(
+                  'Write feedback for the student...',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TaskPrimaryButton(
+                label: submission.isReviewed
+                    ? 'Update Review'
+                    : 'Mark as Reviewed',
+                onPressed: () => Navigator.pop(context, _feedback.text),
+              ),
             ],
           ),
         ),

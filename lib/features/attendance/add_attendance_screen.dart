@@ -6,6 +6,7 @@ import 'attendance_screen.dart';
 
 import 'models/attendance_record.dart';
 import 'services/attendance_service.dart';
+import '../user_communication/teacher_chat_fab.dart';
 
 class AddAttendanceScreen extends StatefulWidget {
   final Map<String, dynamic>? classroom;
@@ -342,12 +343,16 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
     return PopScope(
       canPop: !_isSaving,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF3F4F6),
+
+        // Lifted so it sits above the fixed bottom navigation area.
+        floatingActionButton: const TeacherChatFab(bottomOffset: 70),
+
         bottomNavigationBar: AttendanceNavigation(
           teacher: true,
           enabled: !_isSaving,
           teacherLayout: true,
         ),
-        backgroundColor: const Color(0xFFF3F4F6),
         appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -553,7 +558,12 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                               ),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                kTeacherFabClearance,
+                              ),
                               itemCount: students.length,
                               separatorBuilder: (context, index) =>
                                   const SizedBox(height: 9),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/homework.dart';
 import '../services/homework_announcement_service.dart';
 import '../widgets/task_widgets.dart';
+import '../../user_communication/teacher_chat_fab.dart';
 
 /// "Add Homework" form. Pass [existing] to edit an assignment instead.
 class AddHomeworkScreen extends StatefulWidget {
@@ -144,6 +145,7 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
     return Scaffold(
       backgroundColor: TaskColors.background,
       appBar: taskAppBar(_editing ? 'Edit Homework' : 'Add Homework'),
+      floatingActionButton: const TeacherChatFab(),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -171,7 +173,7 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
 
   Widget _form() {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, kTeacherFabClearance),
       children: [
         const FieldLabel('Homework Title'),
         TextField(
