@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
+import '../../features/homework_announcements/student/student_homework_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   final int initialIndex;
@@ -23,16 +24,18 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SchoolBridge'),
-        actions: [
-          const LogoutButton(),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none),
-          ),
-        ],
-      ),
+      appBar: selectedIndex == 1
+          ? null
+          : AppBar(
+              title: const Text('SchoolBridge'),
+              actions: [
+                const LogoutButton(),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.notifications_none),
+                ),
+              ],
+            ),
 
       body: selectedIndex == 0
           ? _StudentHome(
@@ -42,6 +45,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 });
               },
             )
+          : selectedIndex == 1
+          ? const SafeArea(child: StudentHomeworkScreen())
           : PlaceholderPage(title: pages[selectedIndex]),
 
       bottomNavigationBar: NavigationBar(

@@ -5,6 +5,7 @@ import '../../auth/widgets/logout_button.dart';
 import '../../features/attendance/attendance_screen.dart';
 import '../../features/profile/teacher_profile_screen.dart';
 import '../../auth/services/session_navigation.dart';
+import '../../features/homework_announcements/homework_announcements_screen.dart';
 
 class TeacherDashboard extends StatefulWidget {
   final int initialIndex;
@@ -41,6 +42,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               )
             : selectedIndex == 4
             ? const TeacherProfileScreen()
+            : selectedIndex == 2
+            ? const HomeworkAnnouncementsScreen()
             : _PlaceholderPage(title: pages[selectedIndex]),
       ),
 
