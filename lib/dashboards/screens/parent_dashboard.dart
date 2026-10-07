@@ -36,14 +36,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         actions: [
           const LogoutButton(),
           IconButton(
-            tooltip: 'Announcements',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    const ParentHomeworkAnnouncementsScreen(initialTab: 1),
-              ),
-            ),
+            onPressed: () {},
             icon: const Icon(Icons.notifications_none),
           ),
         ],
