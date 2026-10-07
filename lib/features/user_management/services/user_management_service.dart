@@ -172,6 +172,96 @@ class UserManagementService {
     _streamController.add(List.unmodifiable(_users));
   }
 
+  /// Registers a student and parent together, saving each separately in DB
+  /// with proper linking in `users` and `students` collections.
+  Future<Map<String, UserItem>> addStudentWithParent({
+    required UserItem student,
+    required String studentPassword,
+    required UserItem parent,
+    required String parentPassword,
+  }) async {
+    final tempApp = await Firebase.initializeApp(
+      name: 'StudentParentRegister_${DateTime.now().millisecondsSinceEpoch}',
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    final auth = FirebaseAuth.instanceFor(app: tempApp);
+    User? createdParentUser;
+    User? createdStudentUser;
+    late UserItem finalParent;
+    late UserItem finalStudent;
+
+    try {
+      // 1. Create Parent in Firebase Auth
+      final parentCred = await auth.createUserWithEmailAndPassword(
+        email: parent.email.trim(),
+        password: parentPassword.trim().isNotEmpty
+            ? parentPassword.trim()
+            : '123456',
+      );
+      createdParentUser = parentCred.user;
+      if (createdParentUser == null) {
+        throw StateError('Parent authentication user could not be created.');
+      }
+      finalParent = parent.copyWith(id: createdParentUser.uid);
+
+      // Save parent separately in Firestore users collection
+      await ClassAssignmentService(_firestore)
+          .save(finalParent.id, finalParent.toMap());
+
+      // 2. Create Student in Firebase Auth
+      final studentCred = await auth.createUserWithEmailAndPassword(
+        email: student.email.trim(),
+        password: studentPassword.trim().isNotEmpty
+            ? studentPassword.trim()
+            : '123456',
+      );
+      createdStudentUser = studentCred.user;
+      if (createdStudentUser == null) {
+        throw StateError('Student authentication user could not be created.');
+      }
+
+      // Link student to the newly created parent's UID
+      finalStudent = student.copyWith(
+        id: createdStudentUser.uid,
+        parentIds: [finalParent.id],
+      );
+
+      // Save student in Firestore users and students collections
+      await ClassAssignmentService(_firestore)
+          .save(finalStudent.id, finalStudent.toMap());
+    } catch (_) {
+      // Clean up on failure so no orphaned accounts remain
+      if (createdStudentUser != null) {
+        try {
+          await createdStudentUser.delete();
+          await _firestore.collection('users').doc(createdStudentUser.uid).delete();
+          await _firestore.collection('students').doc(createdStudentUser.uid).delete();
+        } catch (_) {}
+      }
+      if (createdParentUser != null) {
+        try {
+          await createdParentUser.delete();
+          await _firestore.collection('users').doc(createdParentUser.uid).delete();
+        } catch (_) {}
+      }
+      rethrow;
+    } finally {
+      await tempApp.delete();
+    }
+
+    // Update local cache so admin immediately sees both new users
+    _users.removeWhere((u) => u.id == finalParent.id || u.id == finalStudent.id);
+    _users.insert(0, finalStudent);
+    _users.insert(1, finalParent);
+    _streamController.add(List.unmodifiable(_users));
+
+    return {
+      'student': finalStudent,
+      'parent': finalParent,
+    };
+  }
+
+
   Future<void> updateUser(UserItem updatedUser) async {
     await ClassAssignmentService(_firestore)
         .save(updatedUser.id, updatedUser.toMap());

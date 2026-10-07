@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../auth/widgets/logout_button.dart';
 
 class SchoolBridgeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
   final VoidCallback? onLeadingPressed;
   final VoidCallback? onNotificationPressed;
+  final List<Widget>? actions;
+  final bool showLogout;
 
   const SchoolBridgeAppBar({
     super.key,
@@ -12,20 +15,30 @@ class SchoolBridgeAppBar extends StatelessWidget implements PreferredSizeWidget 
     this.showBackButton = false,
     this.onLeadingPressed,
     this.onNotificationPressed,
+    this.actions,
+    this.showLogout = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFF2563EB),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
       elevation: 0,
-      centerTitle: true,
+      centerTitle: false,
+      titleSpacing: showBackButton ? 0 : 16,
+      shape: const Border(
+        bottom: BorderSide(
+          color: Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
       leading: IconButton(
         icon: Icon(
           showBackButton
               ? Icons.arrow_back_ios_new_rounded
               : Icons.menu_rounded,
-          color: Colors.white,
+          color: const Color(0xFF1E293B),
           size: 22,
         ),
         onPressed: onLeadingPressed ??
@@ -40,31 +53,29 @@ class SchoolBridgeAppBar extends StatelessWidget implements PreferredSizeWidget 
       title: Text(
         title,
         style: const TextStyle(
-          color: Colors.white,
-          fontSize: 19,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
+          color: Color(0xFF1E293B),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
         ),
       ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 18),
-          child: GestureDetector(
-            onTap: onNotificationPressed,
-            child: Container(
-              width: 9,
-              height: 9,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEF4444),
-                shape: BoxShape.circle,
+      actions: actions ??
+          [
+            if (onNotificationPressed != null)
+              IconButton(
+                tooltip: 'Notifications',
+                onPressed: onNotificationPressed,
+                icon: const Icon(
+                  Icons.notifications_none_rounded,
+                  color: Color(0xFF1E293B),
+                ),
               ),
-            ),
-          ),
-        ),
-      ],
+            if (showLogout) const LogoutButton(),
+            const SizedBox(width: 4),
+          ],
     );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
 }
+

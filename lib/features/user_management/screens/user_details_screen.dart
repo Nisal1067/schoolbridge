@@ -228,6 +228,48 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           ? _currentUser.gradeOrClass
                           : 'Not assigned',
                     ),
+                    if (_currentUser.admissionNo.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.confirmation_number_outlined,
+                        label: 'Admission / Index No',
+                        value: _currentUser.admissionNo,
+                      ),
+                    if (_currentUser.dob.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.cake_outlined,
+                        label: 'Date of Birth',
+                        value: _currentUser.dob,
+                      ),
+                    if (_currentUser.gender.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.person_outline,
+                        label: 'Gender',
+                        value: _currentUser.gender,
+                      ),
+                    if (_currentUser.address.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.location_on_outlined,
+                        label: 'Home Address',
+                        value: _currentUser.address,
+                      ),
+                    if (_currentUser.homePhone.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.contact_phone_outlined,
+                        label: 'Home Phone / Landline',
+                        value: _currentUser.homePhone,
+                      ),
+                    if (_currentUser.nic.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.credit_card_outlined,
+                        label: 'NIC / National ID',
+                        value: _currentUser.nic,
+                      ),
+                    if (_currentUser.occupation.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.work_outline,
+                        label: 'Occupation',
+                        value: _currentUser.occupation,
+                      ),
                     _buildDetailCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Joined',
