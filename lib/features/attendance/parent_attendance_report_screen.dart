@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'widgets/attendance_navigation.dart';
+
 import 'models/attendance_record.dart';
 import 'widgets/student_attendance_view.dart';
 
@@ -37,7 +39,8 @@ class _ParentAttendanceReportScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FBF8),
+      backgroundColor: const Color(0xFFF7F9FC),
+      bottomNavigationBar: AttendanceNavigation(),
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -205,7 +208,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFD7E9E3)),
       ),
       child: Row(
@@ -255,7 +258,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFDCEBE6)),
       ),
       child: Row(
@@ -306,7 +309,7 @@ class _ParentAttendanceReportScreenState
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFE9FAF4),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +361,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFDCEBE6)),
       ),
       child: Column(
@@ -408,7 +411,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFDCEBE6)),
       ),
       child: Column(
@@ -584,7 +587,7 @@ class _ParentAttendanceReportScreenState
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: const Color(0xFFDCEBE6)),
           ),
           child: ListView.separated(
@@ -661,7 +664,7 @@ class _ParentAttendanceReportScreenState
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: background,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               status,

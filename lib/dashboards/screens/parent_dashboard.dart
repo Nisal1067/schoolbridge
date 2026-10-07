@@ -10,14 +10,15 @@ import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
-  const ParentDashboard({super.key});
+  final int initialIndex;
+  const ParentDashboard({super.key, this.initialIndex = 0});
 
   @override
   State<ParentDashboard> createState() => _ParentDashboardState();
 }
 
 class _ParentDashboardState extends State<ParentDashboard> {
-  int selectedIndex = 0;
+  late int selectedIndex = widget.initialIndex;
 
   final pages = const [
     'Home',
@@ -107,12 +108,14 @@ class _ParentHome extends StatelessWidget {
           child: Builder(
             builder: (context) {
               final user = FirebaseAuth.instance.currentUser;
-              final defaultEmailName = user?.email != null && user!.email!.contains('@')
+              final defaultEmailName =
+                  user?.email != null && user!.email!.contains('@')
                   ? user.email!.split('@').first
                   : 'Parent';
               String fallbackName = user?.displayName ?? defaultEmailName;
               if (fallbackName.isNotEmpty && !fallbackName.contains(' ')) {
-                fallbackName = fallbackName[0].toUpperCase() + fallbackName.substring(1);
+                fallbackName =
+                    fallbackName[0].toUpperCase() + fallbackName.substring(1);
               }
 
               if (user == null) {

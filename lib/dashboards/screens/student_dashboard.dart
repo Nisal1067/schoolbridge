@@ -8,14 +8,15 @@ import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
-  const StudentDashboard({super.key});
+  final int initialIndex;
+  const StudentDashboard({super.key, this.initialIndex = 0});
 
   @override
   State<StudentDashboard> createState() => _StudentDashboardState();
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
-  int selectedIndex = 0;
+  late int selectedIndex = widget.initialIndex;
 
   final pages = const ['Home', 'Homework', 'Results', 'Attendance', 'Profile'];
 

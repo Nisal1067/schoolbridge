@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../dashboards/screens/teacher_dashboard.dart';
+
+import 'widgets/attendance_navigation.dart';
+
 import 'add_attendance_screen.dart';
 import 'services/attendance_service.dart';
 import 'models/attendance_record.dart';
@@ -66,7 +70,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
+      backgroundColor: const Color(0xFFF7F9FC),
+      bottomNavigationBar: AttendanceNavigation(
+        teacher: true,
+        teacherLayout: true,
+      ),
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -76,14 +84,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           icon: const Icon(
             Icons.arrow_back_ios_new,
             size: 20,
-            color: Color(0xFF151B2B),
+            color: Color(0xFF17212F),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const TeacherDashboard()),
+              );
+            }
+          },
         ),
         title: const Text(
           'Attendance',
           style: TextStyle(
-            color: Color(0xFF151B2B),
+            color: Color(0xFF17212F),
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -93,7 +110,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             onPressed: () {},
             icon: const Icon(
               Icons.notifications_none_rounded,
-              color: Color(0xFF151B2B),
+              color: Color(0xFF17212F),
             ),
           ),
           const SizedBox(width: 8),
@@ -152,7 +169,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
@@ -176,7 +193,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF151B2B),
+                                  color: Color(0xFF17212F),
                                 ),
                               ),
                               SizedBox(height: 3),
@@ -190,7 +207,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       : 'Loading students...',
                                   style: const TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF9297A1),
+                                    color: Color(0xFF64748B),
                                   ),
                                 ),
                               ),
@@ -222,7 +239,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
@@ -235,7 +252,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF151B2B),
+                      color: Color(0xFF17212F),
                     ),
                   ),
 
@@ -260,7 +277,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         groups.putIfAbsent(key, () => []).add(record);
                       }
                       if (groups.isEmpty) {
-                        return const Text('No attendance recorded yet.');
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 36),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.event_available_outlined,
+                                  size: 40,
+                                  color: Color(0xFF64748B),
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  'No attendance recorded yet.',
+                                  style: TextStyle(color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
                       }
                       return Column(
                         children: groups.entries.map((entry) {
@@ -322,7 +357,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
@@ -331,7 +366,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             height: 42,
             decoration: BoxDecoration(
               color: const Color(0xFFE3EEFF),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.calendar_today_outlined,
@@ -351,7 +386,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF151B2B),
+                    color: Color(0xFF17212F),
                   ),
                 ),
 
@@ -387,7 +422,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
           ),
 
-          const Icon(Icons.chevron_right, color: Color(0xFF9297A1)),
+          const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
         ],
       ),
     );

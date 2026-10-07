@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "classes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teacherIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "schoolId", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "students",
       "queryScope": "COLLECTION",
       "fields": [

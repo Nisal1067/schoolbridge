@@ -51,83 +51,40 @@ class AttendanceService {
 
   Future<List<Map<String, dynamic>>> teacherClasses() async {
     final user = await profile();
-    List<Map<String, dynamic>> classes = [];
-    
-    try {
-      final result = await _firestore
+    final queries = [
+      await _firestore
+          .collection('classes')
+          .where('teacherIds', arrayContains: user['uid'])
+          .where('schoolId', isEqualTo: user['schoolId'])
+          .get(),
+      await _firestore
           .collection('classes')
           .where('teacherId', isEqualTo: user['uid'])
-          .get();
-          
-      for (final d in result.docs) {
-        final data = d.data();
-        if (data['schoolId'] == user['schoolId']) {
-          classes.add({...data, 'id': d.id});
-        }
+          .where('schoolId', isEqualTo: user['schoolId'])
+          .get(),
+    ];
+    final classes = <String, Map<String, dynamic>>{};
+    for (final query in queries) {
+      for (final doc in query.docs) {
+        classes[doc.id] = {...doc.data(), 'id': doc.id};
       }
-    } catch (_) {}
-    
-    if (classes.isEmpty) {
-      final rawClass = user['gradeOrClass'] ?? user['class'] ?? user['classId'] ?? 'General Class';
-      final className = rawClass.toString().trim().isEmpty ? 'General Class' : rawClass.toString().trim();
-      
-      return [
-        {
-          'id': className,
-          'name': className,
-          'schoolId': user['schoolId'] ?? 'school01',
-          'teacherId': user['uid'],
-        }
-      ];
     }
-    
-    return classes;
+    return classes.values.toList();
   }
 
   Future<List<Map<String, dynamic>>> studentsForClass(
     Map<String, dynamic> classroom,
   ) async {
-    final students = <Map<String, dynamic>>[];
-    
-    try {
-      final result = await _firestore
-          .collection('students')
-          .where('classId', isEqualTo: classroom['id'])
-          .get();
-          
-      for (final d in result.docs) {
-        final data = d.data();
-        if (data['schoolId'] == classroom['schoolId']) {
-          students.add({...data, 'id': d.id});
-        }
-      }
-    } catch (_) {}
-    
-    try {
-      final userResult = await _firestore
-          .collection('users')
-          .where('role', isEqualTo: 'student')
-          .get();
-          
-      for (final d in userResult.docs) {
-        final data = d.data();
-        bool matchesClass = data['class'] == classroom['id'] || 
-                            data['gradeOrClass'] == classroom['id'] || 
-                            data['classId'] == classroom['id'];
-                            
-        // Use user's schoolId or fallback to 'school01' for older docs
-        final sId = data['schoolId'] ?? 'school01';
-        
-        if (matchesClass && sId == classroom['schoolId']) {
-          if (!students.any((s) => s['id'] == d.id)) {
-            students.add({...data, 'id': d.id});
-          }
-        }
-      }
-    } catch (_) {}
-    
+    final result = await _firestore
+        .collection('students')
+        .where('classId', isEqualTo: classroom['id'])
+        .where('schoolId', isEqualTo: classroom['schoolId'])
+        .get();
+    final students = result.docs
+        .map((doc) => {...doc.data(), 'id': doc.id})
+        .toList();
     students.sort(
-      (a, b) => (a['name'] as String? ?? '').compareTo(b['name'] as String? ?? ''),
+      (a, b) => (a['name'] as String).compareTo(b['name'] as String),
     );
     return students;
   }
