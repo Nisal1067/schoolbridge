@@ -15,6 +15,16 @@ AttendanceRecord record(String status, {String school = 'school01'}) =>
     );
 
 void main() {
+  test('Date chooses the term across New Year and September boundaries', () {
+    expect(AttendanceRecord.termForDate(DateTime(2026, 1, 1)), 1);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 4, 14)), 1);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 4, 15)), 2);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 8, 31)), 2);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 9, 1)), 3);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 10, 7)), 3);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 11, 30)), 3);
+    expect(AttendanceRecord.termForDate(DateTime(2026, 12, 31)), 3);
+  });
   test(
     'Loaded document ID is retained for updating and deleting older records',
     () {

@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'widgets/attendance_navigation.dart';
+import 'attendance_screen.dart';
+
 import 'models/attendance_record.dart';
 import 'services/attendance_service.dart';
 
@@ -22,12 +25,23 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
 
   bool _isSaving = false;
 
+  void _returnToAttendance({bool saved = false}) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context, saved);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AttendanceScreen()),
+      );
+    }
+  }
+
   final List<Map<String, String>> students = [];
   Map<String, dynamic>? _classroom;
   bool _loading = true;
   String? _error;
   DateTime _date = DateTime.now();
-  int _term = 1;
+  late int _term = AttendanceRecord.termForDate(_date);
 
   @override
   void initState() {
@@ -164,13 +178,11 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           title: const Text(
             'Save Attendance?',
             style: TextStyle(
-              color: Color(0xFF151B2B),
+              color: Color(0xFF17212F),
               fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
@@ -233,7 +245,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                             content: Text('Attendance saved successfully.'),
                           ),
                         );
-                        Navigator.pop(context, true);
+                        _returnToAttendance(saved: true);
                       } catch (error) {
                         debugPrint('Attendance save error: $error');
 
@@ -293,7 +305,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             '$count',
@@ -317,12 +329,25 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
   // SCREEN
   // ------------------------------------------------------------
 
+  void _selectDate(DateTime date) {
+    if (date.isBefore(DateTime(2020))) return;
+    setState(() {
+      _date = date;
+      _term = AttendanceRecord.termForDate(date);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: !_isSaving,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F6F8),
+        bottomNavigationBar: AttendanceNavigation(
+          teacher: true,
+          enabled: !_isSaving,
+          teacherLayout: true,
+        ),
+        backgroundColor: const Color(0xFFF3F4F6),
         appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -331,18 +356,25 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
             onPressed: _isSaving
                 ? null
                 : () {
-                    Navigator.pop(context);
+                    _returnToAttendance();
                   },
             icon: const Icon(
               Icons.arrow_back_ios_new,
               size: 20,
-              color: Color(0xFF151B2B),
+              color: Color(0xFF17212F),
             ),
           ),
+          actions: [
+            IconButton(
+              tooltip: 'Save attendance',
+              onPressed: _isSaving || students.isEmpty ? null : _saveAttendance,
+              icon: const Icon(Icons.check_rounded),
+            ),
+          ],
           title: Text(
-            widget.existing.isEmpty ? 'Add Attendance' : 'Update Attendance',
+            'Marks & Attendance',
             style: const TextStyle(
-              color: Color(0xFF151B2B),
+              color: Color(0xFF17212F),
               fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
@@ -355,115 +387,162 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
             : SafeArea(
                 child: Column(
                   children: [
-                    // ----------------------------------------------------
-                    // CLASS INFORMATION
-                    // ----------------------------------------------------
-
-                    Container(
-                      width: double.infinity,
-                      color: Colors.white,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${_classroom?['name']}',
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF151B2B),
-                                  ),
-                                ),
-                                SizedBox(height: 3),
-                                Text(
-                                  'Select attendance for each student',
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Marks',
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF9297A1),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // TODAY LABEL
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEAF1FF),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 15,
-                                  color: Color(0xFF2F67EA),
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  '${_date.day}/${_date.month}/${_date.year}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
+                                    color: Color(0xFF6B7280),
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF2F67EA),
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF2563EB),
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(6),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Attendance',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-
-                    // ----------------------------------------------------
-                    // STUDENT LIST
-                    // ----------------------------------------------------
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          TextButton.icon(
-                            icon: const Icon(Icons.calendar_today),
-                            label: Text(
-                              '${_date.year}-${_date.month}-${_date.day}',
+                      child: Container(
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'Previous day',
+                              onPressed: _isSaving || widget.existing.isNotEmpty
+                                  ? null
+                                  : () => _selectDate(
+                                      _date.subtract(const Duration(days: 1)),
+                                    ),
+                              icon: const Icon(Icons.chevron_left),
                             ),
-                            onPressed: _isSaving || widget.existing.isNotEmpty
-                                ? null
-                                : () async {
-                                    final date = await showDatePicker(
-                                      context: context,
-                                      initialDate: _date,
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime.now(),
-                                    );
-                                    if (date != null && mounted) {
-                                      setState(() => _date = date);
-                                    }
-                                  },
-                          ),
-                          const Spacer(),
-                          DropdownButton<int>(
-                            value: _term,
-                            items: [1, 2, 3]
-                                .map(
-                                  (t) => DropdownMenuItem(
-                                    value: t,
-                                    child: Text('Term $t'),
+                            Expanded(
+                              child: TextButton(
+                                onPressed:
+                                    _isSaving || widget.existing.isNotEmpty
+                                    ? null
+                                    : () async {
+                                        final date = await showDatePicker(
+                                          context: context,
+                                          initialDate: _date,
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime.now(),
+                                        );
+                                        if (date != null && mounted) {
+                                          _selectDate(date);
+                                        }
+                                      },
+                                child: Text(
+                                  '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF17212F),
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                )
-                                .toList(),
-                            onChanged: _isSaving
-                                ? null
-                                : (t) => setState(() => _term = t!),
-                          ),
-                        ],
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Next day',
+                              onPressed:
+                                  _isSaving ||
+                                      widget.existing.isNotEmpty ||
+                                      !DateTime(
+                                        _date.year,
+                                        _date.month,
+                                        _date.day,
+                                      ).isBefore(
+                                        DateTime(
+                                          DateTime.now().year,
+                                          DateTime.now().month,
+                                          DateTime.now().day,
+                                        ),
+                                      )
+                                  ? null
+                                  : () => _selectDate(
+                                      _date.add(const Duration(days: 1)),
+                                    ),
+                              icon: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: const Color(0xFF2563EB)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${_classroom?['name']}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                value: _term,
+                                items: [1, 2, 3]
+                                    .map(
+                                      (t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text(
+                                          'Term $t',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: _isSaving
+                                    ? null
+                                    : (t) => setState(() => _term = t!),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -474,7 +553,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                               ),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(16),
                               itemCount: students.length,
                               separatorBuilder: (context, index) =>
                                   const SizedBox(height: 9),
@@ -507,7 +586,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(11),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           child: _isSaving
@@ -547,7 +626,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -581,7 +660,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF151B2B),
+                    color: Color(0xFF17212F),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -590,7 +669,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                   'ID: ${student['id']}',
                   style: const TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF9297A1),
+                    color: Color(0xFF64748B),
                   ),
                 ),
               ],
@@ -623,32 +702,37 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       color = const Color(0xFFF2B632);
     }
 
-    return InkWell(
-      onTap: _isSaving
-          ? null
-          : () {
-              setState(() {
-                students[index]['status'] = status;
-              });
-            },
-      borderRadius: BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 27,
-        height: 27,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.18)
-              : const Color(0xFFF1F2F4),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          status,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: selected ? color : const Color(0xFF8B909A),
+    return Tooltip(
+      message: status == 'P'
+          ? 'Present'
+          : status == 'A'
+          ? 'Absent'
+          : 'Late',
+      child: InkWell(
+        onTap: _isSaving
+            ? null
+            : () {
+                setState(() {
+                  students[index]['status'] = status;
+                });
+              },
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? color : const Color(0xFFF1F2F4),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            status,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: selected ? color : const Color(0xFF64748B),
+            ),
           ),
         ),
       ),

@@ -1,12 +1,16 @@
 import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 import '../../../firebase_options.dart';
 import '../models/user_item.dart';
+import 'class_assignment_service.dart';
 
 class UserManagementService {
-  static final UserManagementService _instance = UserManagementService._internal();
+  static final UserManagementService _instance =
+      UserManagementService._internal();
   factory UserManagementService() => _instance;
 
   UserManagementService._internal() {
@@ -30,53 +34,62 @@ class UserManagementService {
 
   void _initFirestoreListener() {
     try {
-      _firestore.collection('users').snapshots().listen(
-        (snapshot) async {
-          _errorMessage = null;
-          final List<UserItem> realUsers = [];
+      _firestore
+          .collection('users')
+          .snapshots()
+          .listen(
+            (snapshot) async {
+              _errorMessage = null;
+              final List<UserItem> realUsers = [];
 
-          for (final doc in snapshot.docs) {
-            final data = doc.data();
-            realUsers.add(UserItem.fromMap(data, doc.id));
-          }
-
-          // Check if students are also stored in students collection
-          try {
-            final studentSnap = await _firestore.collection('students').get();
-            for (final sDoc in studentSnap.docs) {
-              final sData = sDoc.data();
-              final sName = sData['name'] ?? '';
-              final alreadyAdded = realUsers.any(
-                (u) => u.id == sDoc.id || (u.name.isNotEmpty && u.name == sName),
-              );
-
-              if (!alreadyAdded) {
-                realUsers.add(
-                  UserItem(
-                    id: sDoc.id,
-                    name: sName,
-                    email: sData['email'] ?? '',
-                    phone: sData['phone'] ?? '',
-                    role: 'Student',
-                    gradeOrClass: sData['classId'] ?? sData['grade'] ?? '',
-                    status: sData['active'] == false ? 'Inactive' : 'Active',
-                    joinedDate: sData['joinedDate'] ?? 'Jan 15, 2026',
-                  ),
-                );
+              for (final doc in snapshot.docs) {
+                final data = doc.data();
+                realUsers.add(UserItem.fromMap(data, doc.id));
               }
-            }
-          } catch (_) {}
 
-          _users = realUsers;
-          _isLoading = false;
-          _streamController.add(List.unmodifiable(_users));
-        },
-        onError: (err) {
-          _errorMessage = err.toString();
-          _isLoading = false;
-          _streamController.add(List.unmodifiable(_users));
-        },
-      );
+              // Check if students are also stored in students collection
+              try {
+                final studentSnap = await _firestore
+                    .collection('students')
+                    .get();
+                for (final sDoc in studentSnap.docs) {
+                  final sData = sDoc.data();
+                  final sName = sData['name'] ?? '';
+                  final alreadyAdded = realUsers.any(
+                    (u) =>
+                        u.id == sDoc.id ||
+                        (u.name.isNotEmpty && u.name == sName),
+                  );
+
+                  if (!alreadyAdded) {
+                    realUsers.add(
+                      UserItem(
+                        id: sDoc.id,
+                        name: sName,
+                        email: sData['email'] ?? '',
+                        phone: sData['phone'] ?? '',
+                        role: 'Student',
+                        gradeOrClass: sData['classId'] ?? sData['grade'] ?? '',
+                        status: sData['active'] == false
+                            ? 'Inactive'
+                            : 'Active',
+                        joinedDate: sData['joinedDate'] ?? 'Jan 15, 2026',
+                      ),
+                    );
+                  }
+                }
+              } catch (_) {}
+
+              _users = realUsers;
+              _isLoading = false;
+              _streamController.add(List.unmodifiable(_users));
+            },
+            onError: (err) {
+              _errorMessage = err.toString();
+              _isLoading = false;
+              _streamController.add(List.unmodifiable(_users));
+            },
+          );
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
@@ -122,65 +135,51 @@ class UserManagementService {
   }
 
   Future<void> addUser(UserItem user, {String? password}) async {
-    String finalUid = user.id;
-
-    // Automatically register account in Firebase Authentication so user can log in immediately
-    if (user.email.isNotEmpty) {
-      final userPass = (password != null && password.trim().isNotEmpty)
-          ? password.trim()
-          : '123456';
-
-      try {
-        final tempApp = await Firebase.initializeApp(
-          name: 'UserRegister_${DateTime.now().millisecondsSinceEpoch}',
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        try {
-          final secondaryAuth = FirebaseAuth.instanceFor(app: tempApp);
-          final cred = await secondaryAuth.createUserWithEmailAndPassword(
-            email: user.email.trim(),
-            password: userPass,
-          );
-          if (cred.user != null) {
-            finalUid = cred.user!.uid;
-          }
-        } finally {
-          await tempApp.delete();
-        }
-      } catch (_) {
-        // Fallback: If auth creation fails (already registered or web restrictions), continue saving to Firestore
-      }
-    }
-
-    final finalUser = user.copyWith(id: finalUid);
-
+    final tempApp = await Firebase.initializeApp(
+      name: 'UserRegister_${DateTime.now().millisecondsSinceEpoch}',
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    User? createdUser;
+    late UserItem finalUser;
     try {
-      await _firestore.collection('users').doc(finalUid).set(
-        finalUser.toMap(),
-        SetOptions(merge: true),
-      );
-      _users.removeWhere((u) => u.id == finalUid);
-      _users.insert(0, finalUser);
-      _streamController.add(List.unmodifiable(_users));
+      final credential = await FirebaseAuth.instanceFor(app: tempApp)
+          .createUserWithEmailAndPassword(
+            email: user.email.trim(),
+            password: password?.trim().isNotEmpty == true
+                ? password!.trim()
+                : '123456',
+          );
+      createdUser = credential.user;
+      if (createdUser == null) {
+        throw StateError('Authentication user was not created.');
+      }
+      finalUser = user.copyWith(id: createdUser.uid);
+      await ClassAssignmentService(_firestore)
+          .save(finalUser.id, finalUser.toMap());
     } catch (_) {
-      final docRef = await _firestore.collection('users').add(finalUser.toMap());
-      final newUserWithId = finalUser.copyWith(id: docRef.id);
-      _users.removeWhere((u) => u.id == newUserWithId.id);
-      _users.insert(0, newUserWithId);
-      _streamController.add(List.unmodifiable(_users));
+      // Avoid leaving an Auth account without its matching user and roster.
+      if (createdUser != null) {
+        try {
+          await createdUser.delete();
+        } catch (_) {}
+      }
+      rethrow;
+    } finally {
+      await tempApp.delete();
     }
+    _users.removeWhere((u) => u.id == finalUser.id);
+    _users.insert(0, finalUser);
+    _streamController.add(List.unmodifiable(_users));
   }
 
   Future<void> updateUser(UserItem updatedUser) async {
+    await ClassAssignmentService(_firestore)
+        .save(updatedUser.id, updatedUser.toMap());
     final index = _users.indexWhere((u) => u.id == updatedUser.id);
     if (index != -1) {
       _users[index] = updatedUser;
       _streamController.add(List.unmodifiable(_users));
     }
-
-    try {
-      await _firestore.collection('users').doc(updatedUser.id).update(updatedUser.toMap());
-    } catch (_) {}
   }
 
   Future<void> deleteUser(String id) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/user_item.dart';
 import '../services/user_management_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -22,6 +23,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
   late TextEditingController _classController;
   late TextEditingController _statusController;
 
+  String? _selectedParentId;
+  List<UserItem> _parents = [];
   bool _isSaving = false;
 
   @override
@@ -33,6 +36,20 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _roleController = TextEditingController(text: widget.user.role);
     _classController = TextEditingController(text: widget.user.gradeOrClass);
     _statusController = TextEditingController(text: widget.user.status);
+    _selectedParentId = widget.user.parentIds.isNotEmpty ? widget.user.parentIds.first : null;
+    _loadParents();
+  }
+
+  void _loadParents() {
+    setState(() {
+      _parents = UserManagementService()
+          .currentUsers
+          .where((u) => u.role == 'Parent')
+          .toList();
+      if (_selectedParentId != null && !_parents.any((p) => p.id == _selectedParentId)) {
+        _selectedParentId = null;
+      }
+    });
   }
 
   @override
@@ -83,16 +100,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
         controller: controller,
         keyboardType: keyboardType,
         validator: validator,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF1E293B),
-        ),
+        style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 14,
-          ),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
           filled: false,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -108,6 +119,53 @@ class _EditUserScreenState extends State<EditUserScreen> {
     );
   }
 
+  Widget _buildParentDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedParentId,
+        isExpanded: true,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF1E293B),
+        ),
+        decoration: const InputDecoration(
+          filled: false,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+        hint: const Text(
+          'Select Parent (Optional)',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        ),
+        items: _parents.map((parent) {
+          return DropdownMenuItem(
+            value: parent.id,
+            child: Text(parent.name, overflow: TextOverflow.ellipsis),
+          );
+        }).toList(),
+        onChanged: (val) {
+          setState(() {
+            _selectedParentId = val;
+          });
+        },
+      ),
+    );
+  }
+
   Future<void> _handleUpdate() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -119,10 +177,28 @@ class _EditUserScreenState extends State<EditUserScreen> {
       phone: _phoneController.text.trim(),
       role: _roleController.text.trim(),
       gradeOrClass: _classController.text.trim(),
-      status: _statusController.text.trim().isEmpty ? 'Active' : _statusController.text.trim(),
+      status: _statusController.text.trim().isEmpty
+          ? 'Active'
+          : _statusController.text.trim(),
+      parentIds: _roleController.text.trim().toLowerCase() == 'student' && _selectedParentId != null
+          ? [_selectedParentId!]
+          : [],
     );
 
-    await UserManagementService().updateUser(updated);
+    try {
+      await UserManagementService().updateUser(updated);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not update user and class assignment. Please try again.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +206,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
           content: Text('User "${updated.name}" updated successfully!'),
           backgroundColor: const Color(0xFF16A34A),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       Navigator.of(context).pop(updated);
@@ -143,11 +221,16 @@ class _EditUserScreenState extends State<EditUserScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete User'),
-        content: Text('Are you sure you want to delete ${widget.user.name}? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete ${widget.user.name}? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -170,7 +253,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
             content: Text('User "${widget.user.name}" deleted.'),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         // Pop back to the users list
@@ -202,8 +287,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       _buildFieldLabel('Full Name'),
                       _buildTextField(
                         controller: _nameController,
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Please enter full name' : null,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Please enter full name'
+                            : null,
                       ),
 
                       const SizedBox(height: 18),
@@ -212,8 +298,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       _buildTextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Please enter a valid email' : null,
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'Please enter a valid email'
+                            : null,
                       ),
 
                       const SizedBox(height: 18),
@@ -227,23 +314,23 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       const SizedBox(height: 18),
 
                       _buildFieldLabel('Role'),
-                      _buildTextField(
-                        controller: _roleController,
-                      ),
+                      _buildTextField(controller: _roleController),
 
                       const SizedBox(height: 18),
 
                       _buildFieldLabel('Class'),
-                      _buildTextField(
-                        controller: _classController,
-                      ),
+                      _buildTextField(controller: _classController),
 
                       const SizedBox(height: 18),
 
+                      if (_roleController.text.trim().toLowerCase() == 'student') ...[
+                        _buildFieldLabel('Assign Parent'),
+                        _buildParentDropdown(),
+                        const SizedBox(height: 18),
+                      ],
+
                       _buildFieldLabel('Status'),
-                      _buildTextField(
-                        controller: _statusController,
-                      ),
+                      _buildTextField(controller: _statusController),
 
                       const SizedBox(height: 24),
                     ],
@@ -300,7 +387,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       onPressed: _handleDelete,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFEF4444),
-                        side: const BorderSide(color: Color(0xFFEF4444), width: 1.2),
+                        side: const BorderSide(
+                          color: Color(0xFFEF4444),
+                          width: 1.2,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),

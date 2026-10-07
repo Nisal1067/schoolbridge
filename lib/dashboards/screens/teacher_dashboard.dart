@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import '../../auth/widgets/logout_button.dart';
 
 import '../../features/attendance/attendance_screen.dart';
+import '../../features/profile/teacher_profile_screen.dart';
+import '../../auth/services/session_navigation.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
 
 class TeacherDashboard extends StatefulWidget {
-  const TeacherDashboard({super.key});
+  final int initialIndex;
+  const TeacherDashboard({super.key, this.initialIndex = 0});
 
   @override
   State<TeacherDashboard> createState() => _TeacherDashboardState();
 }
 
 class _TeacherDashboardState extends State<TeacherDashboard> {
-  int selectedIndex = 0;
+  late int selectedIndex = widget.initialIndex;
 
   final List<String> pages = const [
     'Home',
@@ -37,6 +40,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   });
                 },
               )
+            : selectedIndex == 4
+            ? const TeacherProfileScreen()
             : selectedIndex == 2
             ? const HomeworkAnnouncementsScreen()
             : _PlaceholderPage(title: pages[selectedIndex]),
@@ -55,6 +60,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       child: BottomNavigationBar(
         currentIndex: selectedIndex,
         onTap: (index) {
+          SessionNavigation.remember('teacher', {'index': index});
           setState(() {
             selectedIndex = index;
           });

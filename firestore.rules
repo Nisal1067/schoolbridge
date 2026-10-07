@@ -51,7 +51,9 @@ service cloud.firestore {
     function teaches(classId, schoolId) {
       let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
       return isActiveTeacher() && userData().schoolId == schoolId
-        && classroom.schoolId == schoolId && classroom.teacherId == request.auth.uid;
+        && classroom.schoolId == schoolId
+        && (classroom.get('teacherId', '') == request.auth.uid
+          || request.auth.uid in classroom.get('teacherIds', []));
     }
 
     // Homework is visible to students in the same class and school.
@@ -85,30 +87,29 @@ service cloud.firestore {
     // Classes, students, users
     // ======================================================================
     match /classes/{classId} {
-      allow read: if isActiveTeacher() && resource.data.teacherId == request.auth.uid
-        && resource.data.schoolId == userData().schoolId;
-      allow write: if false;
+      allow read: if isActiveAdmin() || (isActiveTeacher()
+        && resource.data.schoolId == userData().schoolId
+        && (resource.data.get('teacherId', '') == request.auth.uid
+          || request.auth.uid in resource.data.get('teacherIds', [])));
+      allow write: if isActiveAdmin();
     }
 
     match /students/{studentId} {
-      allow read: if active() && resource.data.schoolId == userData().schoolId
+      allow read: if isActiveAdmin() || (active() && resource.data.schoolId == userData().schoolId
         && ((userData().role == 'student' && studentId == request.auth.uid)
           || (userData().role == 'parent' && request.auth.uid in resource.data.parentIds)
-          || teaches(resource.data.classId, resource.data.schoolId));
-      allow write: if false;
+          || teaches(resource.data.classId, resource.data.schoolId)));
+      allow write: if isActiveAdmin();
     }
 
     // SECURITY: users may only update their own profile while role, active
     // and schoolId stay unchanged; only admins can change those.
     match /users/{uid} {
       allow get: if signedIn() && (request.auth.uid == uid || isActiveAdmin());
-      allow list: if isActiveAdmin();
-      allow create, delete: if isActiveAdmin();
-      allow update: if isActiveAdmin()
-        || (signedIn() && request.auth.uid == uid
-          && request.resource.data.role == resource.data.role
-          && request.resource.data.active == resource.data.active
-          && request.resource.data.schoolId == resource.data.schoolId);
+      allow list, create, delete: if isActiveAdmin();
+      allow update: if isActiveAdmin() || (signedIn() && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['role', 'active', 'schoolId', 'classId', 'class', 'gradeOrClass']));
     }
 
     match /reports/{reportId} {

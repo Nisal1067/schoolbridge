@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/user_item.dart';
 import '../services/user_management_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -21,9 +22,26 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  String? _selectedParentId;
+  List<UserItem> _parents = [];
   bool _isSubmitting = false;
 
   final List<String> _roles = ['Student', 'Teacher', 'Parent', 'Admin'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParents();
+  }
+
+  void _loadParents() {
+    setState(() {
+      _parents = UserManagementService()
+          .currentUsers
+          .where((u) => u.role == 'Parent')
+          .toList();
+    });
+  }
 
   @override
   void dispose() {
@@ -74,16 +92,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
         keyboardType: keyboardType,
         obscureText: isPassword && _obscurePassword,
         validator: validator,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF1E293B),
-        ),
+        style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 14,
-          ),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
           filled: false,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -115,6 +127,53 @@ class _AddUserScreenState extends State<AddUserScreen> {
     );
   }
 
+  Widget _buildParentDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedParentId,
+        isExpanded: true,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF1E293B),
+        ),
+        decoration: const InputDecoration(
+          filled: false,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+        hint: const Text(
+          'Select Parent (Optional)',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        ),
+        items: _parents.map((parent) {
+          return DropdownMenuItem(
+            value: parent.id,
+            child: Text(parent.name, overflow: TextOverflow.ellipsis),
+          );
+        }).toList(),
+        onChanged: (val) {
+          setState(() {
+            _selectedParentId = val;
+          });
+        },
+      ),
+    );
+  }
+
   Future<void> _handleCreateUser() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -122,8 +181,18 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
     final now = DateTime.now();
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final joinedString = '${months[now.month - 1]} ${now.day}, ${now.year}';
 
@@ -137,20 +206,38 @@ class _AddUserScreenState extends State<AddUserScreen> {
       role: _selectedRole,
       gradeOrClass: _gradeController.text.trim().isEmpty
           ? (_selectedRole == 'Student'
-              ? 'Grade 10-A'
-              : (_selectedRole == 'Teacher'
-                  ? 'Mathematics'
-                  : (_selectedRole == 'Parent' ? 'Parent' : 'Administration')))
+                ? '10-A'
+                : (_selectedRole == 'Teacher'
+                      ? ''
+                      : (_selectedRole == 'Parent'
+                            ? 'Parent'
+                            : 'Administration')))
           : _gradeController.text.trim(),
       status: 'Active',
       joinedDate: joinedString,
+      parentIds: _selectedRole == 'Student' && _selectedParentId != null
+          ? [_selectedParentId!]
+          : [],
     );
 
     final password = _passwordController.text.trim().isNotEmpty
         ? _passwordController.text.trim()
         : '123456';
 
-    await UserManagementService().addUser(newUser, password: password);
+    try {
+      await UserManagementService().addUser(newUser, password: password);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not register user and class assignment. Check the email and permissions.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,7 +245,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
           content: Text('User "${newUser.name}" created successfully!'),
           backgroundColor: const Color(0xFF16A34A),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       Navigator.of(context).pop();
@@ -194,7 +283,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
@@ -203,7 +294,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? const Color(0xFFDCEBFE)
@@ -248,8 +341,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       _buildTextField(
                         controller: _nameController,
                         hintText: 'Enter full name',
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Please enter full name' : null,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Please enter full name'
+                            : null,
                       ),
 
                       const SizedBox(height: 18),
@@ -260,8 +354,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                         controller: _emailController,
                         hintText: 'Enter email address',
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Please enter a valid email' : null,
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'Please enter a valid email'
+                            : null,
                       ),
 
                       const SizedBox(height: 18),
@@ -277,13 +372,29 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       const SizedBox(height: 18),
 
                       // Role / Grade Field
-                      _buildFieldLabel('Role / Grade'),
+                      _buildFieldLabel(
+                        _selectedRole == 'Teacher'
+                            ? 'Class Teacher Of (e.g. 10-A)'
+                            : (_selectedRole == 'Student'
+                                  ? 'Student Class (e.g. 10-A)'
+                                  : 'Role / Department'),
+                      ),
                       _buildTextField(
                         controller: _gradeController,
-                        hintText: 'Select (e.g. Grade 10-A, Mathematics)',
+                        hintText: _selectedRole == 'Teacher'
+                            ? 'Enter class name (Leave empty if none)'
+                            : (_selectedRole == 'Student'
+                                  ? 'Enter class name'
+                                  : 'Enter role'),
                       ),
 
                       const SizedBox(height: 18),
+
+                      if (_selectedRole == 'Student') ...[
+                        _buildFieldLabel('Assign Parent'),
+                        _buildParentDropdown(),
+                        const SizedBox(height: 18),
+                      ],
 
                       // Temporary Password Field
                       _buildFieldLabel('Temporary Password'),
@@ -293,8 +404,8 @@ class _AddUserScreenState extends State<AddUserScreen> {
                         isPassword: true,
                         validator: (v) =>
                             (v != null && v.isNotEmpty && v.length < 6)
-                                ? 'Password must be at least 6 characters'
-                                : null,
+                            ? 'Password must be at least 6 characters'
+                            : null,
                       ),
 
                       const SizedBox(height: 24),
