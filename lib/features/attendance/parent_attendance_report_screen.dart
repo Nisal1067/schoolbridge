@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'dart:typed_data';
+import 'package:file_saver/file_saver.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+
 import 'widgets/attendance_navigation.dart';
 
 import 'models/attendance_record.dart';
@@ -22,6 +27,7 @@ class ParentAttendanceReportScreen extends StatefulWidget {
 class _ParentAttendanceReportScreenState
     extends State<ParentAttendanceReportScreen> {
   late int selectedView = widget.initialView;
+  DateTime _currentMonth = DateTime.now();
   List<AttendanceRecord> _filtered = [];
   Map<String, int> _stats = AttendanceRecord.summary([]);
   String _studentName = '';
@@ -70,7 +76,7 @@ class _ParentAttendanceReportScreenState
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              onPressed: () {},
+              onPressed: _generateAndSavePDF,
               icon: const Icon(
                 Icons.file_download_outlined,
                 color: Color(0xFF16B981),
@@ -86,15 +92,14 @@ class _ParentAttendanceReportScreenState
           _studentName = student['name'] as String;
           _filtered = records.where((r) {
             if (selectedView == 0) {
-              final now = DateTime.now();
-              return r.date.year == now.year && r.date.month == now.month;
+              return r.date.year == _currentMonth.year && r.date.month == _currentMonth.month;
             }
             return r.term == selectedView;
           }).toList();
           _stats = AttendanceRecord.summary(_filtered);
-          final month = _filtered.isEmpty
-              ? DateTime.now()
-              : _filtered.first.date;
+          final month = selectedView == 0
+              ? _currentMonth
+              : (_filtered.isEmpty ? DateTime.now() : _filtered.first.date);
           final marks = {
             for (final r in _filtered.where(
               (r) => r.date.year == month.year && r.date.month == month.month,
@@ -138,7 +143,12 @@ class _ParentAttendanceReportScreenState
                 children: [
                   _buildTermSelector(),
 
-                  const SizedBox(height: 28),
+                  if (selectedView == 0) ...[
+                    const SizedBox(height: 20),
+                    _buildMonthNavigation(),
+                  ],
+
+                  const SizedBox(height: 20),
 
                   _buildOverallCard(),
 
@@ -455,14 +465,14 @@ class _ParentAttendanceReportScreenState
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'Detail',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF10B981),
-                      ),
-                    ),
+                    // Text(
+                    //   'Detail',
+                    //   style: TextStyle(
+                    //     fontSize: 12,
+                    //     fontWeight: FontWeight.w600,
+                    //     color: Color(0xFF10B981),
+                    //   ),
+                    // ),
                     Icon(
                       Icons.chevron_right,
                       size: 18,
@@ -580,17 +590,17 @@ class _ParentAttendanceReportScreenState
               ),
             ),
 
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'View calendar',
-                style: TextStyle(
-                  color: Color(0xFF10B981),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+            // TextButton(
+            //   onPressed: () {},
+            //   child: const Text(
+            //     'View calendar',
+            //     style: TextStyle(
+            //       color: Color(0xFF10B981),
+            //       fontSize: 12,
+            //       fontWeight: FontWeight.w600,
+            //     ),
+            //   ),
+            // ),
           ],
         ),
 
@@ -656,9 +666,7 @@ class _ParentAttendanceReportScreenState
                     color: Color(0xFF111827),
                   ),
                 ),
-
                 const SizedBox(height: 3),
-
                 Text(
                   time,
                   style: const TextStyle(
@@ -669,7 +677,6 @@ class _ParentAttendanceReportScreenState
               ],
             ),
           ),
-
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -688,6 +695,160 @@ class _ParentAttendanceReportScreenState
         ],
       ),
     );
+  }
+
+  Widget _buildMonthNavigation() {
+    final months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          onPressed: () {
+            setState(() {
+              _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+            });
+          },
+          icon: const Icon(Icons.chevron_left, color: Color(0xFF64748B)),
+        ),
+        Text(
+          '${months[_currentMonth.month - 1]} ${_currentMonth.year}',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111827),
+          ),
+        ),
+        Visibility(
+          visible: !(_currentMonth.year == DateTime.now().year && _currentMonth.month == DateTime.now().month),
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: IconButton(
+            onPressed: () {
+              setState(() {
+                _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
+              });
+            },
+            icon: const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generateAndSavePDF() async {
+    if (_studentName.isEmpty) return;
+
+    try {
+      final pdf = pw.Document();
+      final months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      String period = selectedView == 0
+          ? '${months[_currentMonth.month - 1]} ${_currentMonth.year}'
+          : 'Term $selectedView';
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Attendance Report',
+                    style: pw.TextStyle(
+                        fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+                pw.SizedBox(height: 20),
+                pw.Text('Student: $_studentName', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 5),
+                pw.Text('Period: $period', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                pw.SizedBox(height: 30),
+                
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey100,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Overall Attendance: ${_stats['attendance'] ?? 0}%',
+                          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+                      pw.Text('Active Streak: $_streak Days', style: pw.TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                ),
+                
+                pw.SizedBox(height: 15),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    pw.Text('Present: ${_stats['present'] ?? 0}', style: pw.TextStyle(color: PdfColors.green700)),
+                    pw.Text('Absent: ${_stats['absent'] ?? 0}', style: pw.TextStyle(color: PdfColors.red700)),
+                    pw.Text('Late: ${_stats['late'] ?? 0}', style: pw.TextStyle(color: PdfColors.orange700)),
+                    pw.Text('Total Days: ${_stats['totalDays'] ?? 0}'),
+                  ]
+                ),
+
+                pw.SizedBox(height: 40),
+                pw.Text('Recent History', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.Divider(color: PdfColors.grey300),
+                pw.SizedBox(height: 10),
+                ...recentHistory.take(15).map((record) => pw.Container(
+                      margin: const pw.EdgeInsets.only(bottom: 8),
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                        color: record['status'] == 'Present' 
+                             ? PdfColors.green50 
+                             : record['status'] == 'Absent' 
+                             ? PdfColors.red50 
+                             : PdfColors.orange50
+                      ),
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(record['date']!),
+                          pw.Text(record['status']!, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                    )),
+                    
+                if (recentHistory.isEmpty)
+                  pw.Text('No records found for this period.', style: const pw.TextStyle(color: PdfColors.grey600)),
+              ],
+            );
+          },
+        ),
+      );
+
+      Uint8List bytes = await pdf.save();
+      await FileSaver.instance.saveFile(
+        name: 'Attendance_Report_${_studentName.replaceAll(' ', '_')}',
+        bytes: bytes,
+        fileExtension: 'pdf',
+        mimeType: MimeType.pdf,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF downloaded successfully!'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to generate PDF: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }
 
