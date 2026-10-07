@@ -137,9 +137,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
       role: _selectedRole,
       gradeOrClass: _gradeController.text.trim().isEmpty
           ? (_selectedRole == 'Student'
-              ? 'Grade 10-A'
+              ? '10-A'
               : (_selectedRole == 'Teacher'
-                  ? 'Mathematics'
+                  ? ''
                   : (_selectedRole == 'Parent' ? 'Parent' : 'Administration')))
           : _gradeController.text.trim(),
       status: 'Active',
@@ -277,10 +277,18 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       const SizedBox(height: 18),
 
                       // Role / Grade Field
-                      _buildFieldLabel('Role / Grade'),
+                      _buildFieldLabel(
+                        _selectedRole == 'Teacher' 
+                            ? 'Class Teacher Of (e.g. 10-A)' 
+                            : (_selectedRole == 'Student' 
+                                ? 'Student Class (e.g. 10-A)' 
+                                : 'Role / Department'),
+                      ),
                       _buildTextField(
                         controller: _gradeController,
-                        hintText: 'Select (e.g. Grade 10-A, Mathematics)',
+                        hintText: _selectedRole == 'Teacher' 
+                            ? 'Enter class name (Leave empty if none)' 
+                            : (_selectedRole == 'Student' ? 'Enter class name' : 'Enter role'),
                       ),
 
                       const SizedBox(height: 18),

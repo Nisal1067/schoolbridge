@@ -21,9 +21,15 @@ service cloud.firestore {
 
     function active() { return signedIn() && userData().active == true; }
     function teaches(classId, schoolId) {
-      let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
-      return isActiveTeacher() && userData().schoolId == schoolId
-        && classroom.schoolId == schoolId && classroom.teacherId == request.auth.uid;
+      let classroomDoc = get(/databases/$(database)/documents/classes/$(classId));
+      let isExplicitTeacher = classroomDoc != null 
+        && classroomDoc.data.schoolId == schoolId 
+        && classroomDoc.data.teacherId == request.auth.uid;
+      
+      let isFallbackTeacher = userData().class == classId || userData().gradeOrClass == classId || userData().classId == classId;
+      
+      return isActiveTeacher() && userData().schoolId == schoolId 
+        && (isExplicitTeacher || isFallbackTeacher);
     }
     function linked(studentId, schoolId) {
       let student = get(/databases/$(database)/documents/students/$(studentId)).data;
