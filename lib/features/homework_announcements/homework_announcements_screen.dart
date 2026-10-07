@@ -8,6 +8,7 @@ import 'screens/add_homework_screen.dart';
 import 'screens/homework_detail_screen.dart';
 import 'services/homework_announcement_service.dart';
 import 'widgets/task_widgets.dart';
+import '../user_communication/teacher_chat_fab.dart';
 
 /// Teacher "Tasks" tab: Homework and Announcements lists.
 ///
@@ -73,7 +74,12 @@ class _HomeworkAnnouncementsScreenState
           _header(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                kTeacherFabClearance,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

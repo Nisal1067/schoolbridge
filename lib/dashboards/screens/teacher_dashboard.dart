@@ -4,6 +4,7 @@ import '../../auth/widgets/logout_button.dart';
 
 import '../../features/attendance/attendance_screen.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
+import '../../features/user_communication/teacher_chat_fab.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -17,9 +18,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   final List<String> pages = const [
     'Home',
-    'Classes',
+    'Marks',
     'Tasks',
-    'Chat',
+    'Attendance',
     'Profile',
   ];
 
@@ -39,8 +40,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               )
             : selectedIndex == 2
             ? const HomeworkAnnouncementsScreen()
+            : selectedIndex == 3
+            ? const AttendanceScreen(showBackButton: false)
             : _PlaceholderPage(title: pages[selectedIndex]),
       ),
+
+      // Quick access to the parent-teacher chat from every tab.
+      floatingActionButton: const TeacherChatFab(),
 
       bottomNavigationBar: _buildBottomNavigation(),
     );
@@ -76,16 +82,18 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            label: 'Classes',
+            icon: Icon(Icons.grading_outlined),
+            activeIcon: Icon(Icons.grading),
+            label: 'Marks',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
             label: 'Tasks',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Chat',
+            icon: Icon(Icons.fact_check_outlined),
+            activeIcon: Icon(Icons.fact_check),
+            label: 'Attendance',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -110,7 +118,12 @@ class _TeacherHome extends StatelessWidget {
 
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            padding: const EdgeInsets.fromLTRB(
+              16,
+              14,
+              16,
+              kTeacherFabClearance,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -274,11 +287,11 @@ class _TeacherHome extends StatelessWidget {
           children: [
             Expanded(
               child: _QuickActionCard(
-                icon: Icons.menu_book_outlined,
+                icon: Icons.grading_outlined,
                 iconColor: const Color(0xFF246BFD),
                 iconBackground: const Color(0xFFE3EDFF),
-                title: 'My\nClasses',
-                subtitle: '7 Active',
+                title: 'Marks',
+                subtitle: 'Results & Grades',
                 onTap: () => onNavigate(1),
               ),
             ),
@@ -309,16 +322,7 @@ class _TeacherHome extends StatelessWidget {
                 iconBackground: const Color(0xFFDDF8EE),
                 title: 'Attendance',
                 subtitle: '100% Tracked',
-
-                // ATTENDANCE NAVIGATION
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AttendanceScreen(),
-                    ),
-                  );
-                },
+                onTap: () => onNavigate(3),
               ),
             ),
 
@@ -331,7 +335,7 @@ class _TeacherHome extends StatelessWidget {
                 iconBackground: const Color(0xFFEDE5FF),
                 title: 'Messages',
                 subtitle: '12 New',
-                onTap: () => onNavigate(3),
+                onTap: () => openTeacherChat(context),
               ),
             ),
           ],

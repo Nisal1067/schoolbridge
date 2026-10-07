@@ -4,6 +4,7 @@ import '../models/homework.dart';
 import '../models/submission.dart';
 import '../services/homework_announcement_service.dart';
 import '../widgets/task_widgets.dart';
+import '../../user_communication/teacher_chat_fab.dart';
 
 enum _StudentState { pending, submitted, reviewed }
 
@@ -111,6 +112,7 @@ class _HomeworkDashboardScreenState extends State<HomeworkDashboardScreen> {
     return Scaffold(
       backgroundColor: TaskColors.background,
       appBar: taskAppBar('Homework Dashboard'),
+      floatingActionButton: const TeacherChatFab(),
       body: SafeArea(
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _roster,
@@ -155,7 +157,7 @@ class _HomeworkDashboardScreenState extends State<HomeworkDashboardScreen> {
     final visible = rows.where((r) => _filter == null || r.state == _filter);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, kTeacherFabClearance),
       children: [
         Container(
           padding: const EdgeInsets.all(16),

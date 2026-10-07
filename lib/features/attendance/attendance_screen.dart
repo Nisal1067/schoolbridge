@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'add_attendance_screen.dart';
 import 'services/attendance_service.dart';
 import 'models/attendance_record.dart';
+import '../user_communication/teacher_chat_fab.dart';
 
 class AttendanceScreen extends StatefulWidget {
-  const AttendanceScreen({super.key});
+  /// Set to false when the screen is used as a tab (no screen to go back to).
+  final bool showBackButton;
+
+  const AttendanceScreen({super.key, this.showBackButton = true});
 
   @override
   State<AttendanceScreen> createState() => _AttendanceScreenState();
@@ -72,14 +76,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 20,
-            color: Color(0xFF151B2B),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 20,
+                  color: Color(0xFF151B2B),
+                ),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: const Text(
           'Attendance',
           style: TextStyle(
@@ -125,7 +132,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _records ??= _service.classRecords(_classroom!);
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                kTeacherFabClearance,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

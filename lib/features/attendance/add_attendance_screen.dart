@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'models/attendance_record.dart';
 import 'services/attendance_service.dart';
+import '../user_communication/teacher_chat_fab.dart';
 
 class AddAttendanceScreen extends StatefulWidget {
   final Map<String, dynamic>? classroom;
@@ -323,6 +324,8 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
       canPop: !_isSaving,
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F6F8),
+        // Lifted so it sits above the fixed Save Attendance bar.
+        floatingActionButton: const TeacherChatFab(bottomOffset: 70),
         appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -474,7 +477,12 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                               ),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                12,
+                                12,
+                                kTeacherFabClearance,
+                              ),
                               itemCount: students.length,
                               separatorBuilder: (context, index) =>
                                   const SizedBox(height: 9),
