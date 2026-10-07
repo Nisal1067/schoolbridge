@@ -1,9 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import 'login_screen.dart';
+import '../services/session_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,22 +11,49 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  String? _error;
   @override
   void initState() {
     super.initState();
 
-    Timer(const Duration(seconds: 2), () {
+    _restore();
+  }
+
+  Future<void> _restore() async {
+    setState(() => _error = null);
+    try {
+      final page = await SessionNavigation.restore();
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(builder: (_) => page),
       );
-    });
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () =>
+              _error = 'Could not restore your session. Check your connection.',
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center),
+              TextButton(onPressed: _restore, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       body: Container(
         width: double.infinity,

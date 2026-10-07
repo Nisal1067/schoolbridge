@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'widgets/attendance_navigation.dart';
+
 import 'models/attendance_record.dart';
 import 'widgets/student_attendance_view.dart';
 
 class ParentAttendanceReportScreen extends StatefulWidget {
-  final int initialTerm;
+  final int initialView;
   final String? initialStudentId;
   const ParentAttendanceReportScreen({
     super.key,
-    this.initialTerm = 0,
+    this.initialView = 0,
     this.initialStudentId,
   });
 
@@ -19,7 +21,7 @@ class ParentAttendanceReportScreen extends StatefulWidget {
 
 class _ParentAttendanceReportScreenState
     extends State<ParentAttendanceReportScreen> {
-  late int selectedTerm = widget.initialTerm;
+  late int selectedView = widget.initialView;
   List<AttendanceRecord> _filtered = [];
   Map<String, int> _stats = AttendanceRecord.summary([]);
   String _studentName = '';
@@ -37,7 +39,8 @@ class _ParentAttendanceReportScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FBF8),
+      backgroundColor: const Color(0xFFF7F9FC),
+      bottomNavigationBar: AttendanceNavigation(),
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -81,7 +84,13 @@ class _ParentAttendanceReportScreenState
         initialStudentId: widget.initialStudentId,
         builder: (student, records) {
           _studentName = student['name'] as String;
-          _filtered = records.where((r) => r.term == selectedTerm + 1).toList();
+          _filtered = records.where((r) {
+            if (selectedView == 0) {
+              final now = DateTime.now();
+              return r.date.year == now.year && r.date.month == now.month;
+            }
+            return r.term == selectedView;
+          }).toList();
           _stats = AttendanceRecord.summary(_filtered);
           final month = _filtered.isEmpty
               ? DateTime.now()
@@ -113,7 +122,7 @@ class _ParentAttendanceReportScreenState
               .map(
                 (r) => {
                   'date': '${r.date.year}-${r.date.month}-${r.date.day}',
-                  'time': 'Term ${r.term}',
+                  'time': selectedView == 0 ? 'Monthly Record' : 'Term ${r.term}',
                   'status': r.status == 'P'
                       ? 'Present'
                       : r.status == 'A'
@@ -188,7 +197,10 @@ class _ParentAttendanceReportScreenState
                   const SizedBox(height: 16),
 
                   if (_filtered.isEmpty)
-                    const Text('No attendance recorded for this term.'),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(selectedView == 0 ? 'No attendance recorded for this month.' : 'No attendance recorded for this term.'),
+                    ),
                   _buildRecentHistory(),
                 ],
               ),
@@ -205,44 +217,45 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFD7E9E3)),
       ),
-      child: Row(
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          _termButton('Term 1', 0),
-          _termButton('Term 2', 1),
-          _termButton('Term 3', 2),
+          _termButton('This Month', 0),
+          _termButton('Term 1', 1),
+          _termButton('Term 2', 2),
+          _termButton('Term 3', 3),
         ],
       ),
     );
   }
 
   Widget _termButton(String text, int index) {
-    final selected = selectedTerm == index;
+    final selected = selectedView == index;
 
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            selectedTerm = index;
-          });
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF10B981) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : const Color(0xFF64748B),
-            ),
+    return InkWell(
+      onTap: () {
+        setState(() {
+          selectedView = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF10B981) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : const Color(0xFF64748B),
           ),
         ),
       ),
@@ -255,7 +268,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFDCEBE6)),
       ),
       child: Row(
@@ -306,7 +319,7 @@ class _ParentAttendanceReportScreenState
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFE9FAF4),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +371,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFDCEBE6)),
       ),
       child: Column(
@@ -408,7 +421,7 @@ class _ParentAttendanceReportScreenState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFDCEBE6)),
       ),
       child: Column(
@@ -584,7 +597,7 @@ class _ParentAttendanceReportScreenState
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: const Color(0xFFDCEBE6)),
           ),
           child: ListView.separated(
@@ -661,7 +674,7 @@ class _ParentAttendanceReportScreenState
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: background,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               status,

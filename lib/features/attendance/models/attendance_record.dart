@@ -57,6 +57,15 @@ class AttendanceRecord {
     };
   }
 
+  static int termForDate(DateTime date) {
+    if (date.month < 4 || (date.month == 4 && date.day <= 14)) {
+      return 1;
+    }
+    if (date.month <= 8) return 2;
+    // Keep end-of-year dates in Term 3; there is no fourth term.
+    return 3;
+  }
+
   factory AttendanceRecord.fromMap(Map<String, dynamic> map) {
     final timestamp = map['date'];
 

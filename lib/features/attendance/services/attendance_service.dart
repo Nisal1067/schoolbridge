@@ -51,12 +51,25 @@ class AttendanceService {
 
   Future<List<Map<String, dynamic>>> teacherClasses() async {
     final user = await profile();
-    final result = await _firestore
-        .collection('classes')
-        .where('teacherId', isEqualTo: user['uid'])
-        .where('schoolId', isEqualTo: user['schoolId'])
-        .get();
-    return result.docs.map((d) => {...d.data(), 'id': d.id}).toList();
+    final queries = [
+      await _firestore
+          .collection('classes')
+          .where('teacherIds', arrayContains: user['uid'])
+          .where('schoolId', isEqualTo: user['schoolId'])
+          .get(),
+      await _firestore
+          .collection('classes')
+          .where('teacherId', isEqualTo: user['uid'])
+          .where('schoolId', isEqualTo: user['schoolId'])
+          .get(),
+    ];
+    final classes = <String, Map<String, dynamic>>{};
+    for (final query in queries) {
+      for (final doc in query.docs) {
+        classes[doc.id] = {...doc.data(), 'id': doc.id};
+      }
+    }
+    return classes.values.toList();
   }
 
   Future<List<Map<String, dynamic>>> studentsForClass(
@@ -67,7 +80,9 @@ class AttendanceService {
         .where('classId', isEqualTo: classroom['id'])
         .where('schoolId', isEqualTo: classroom['schoolId'])
         .get();
-    final students = result.docs.map((d) => {...d.data(), 'id': d.id}).toList();
+    final students = result.docs
+        .map((doc) => {...doc.data(), 'id': doc.id})
+        .toList();
     students.sort(
       (a, b) => (a['name'] as String).compareTo(b['name'] as String),
     );

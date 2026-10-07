@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'widgets/attendance_navigation.dart';
+
 import 'models/attendance_record.dart';
 import 'widgets/student_attendance_view.dart';
 
@@ -13,12 +15,13 @@ class ParentAttendanceScreen extends StatefulWidget {
 }
 
 class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
-  int selectedTerm = 0;
+  int selectedView = 0; // 0: This Month, 1: Term 1, 2: Term 2, 3: Term 3
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8),
+      backgroundColor: const Color(0xFFF7F9FC),
+      bottomNavigationBar: AttendanceNavigation(),
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -39,7 +42,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF151B2B),
+            color: Color(0xFF17212F),
           ),
         ),
 
@@ -58,7 +61,13 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
 
       body: StudentAttendanceView(
         builder: (student, records) {
-          final filtered = records.where((r) => r.term == selectedTerm + 1);
+          final filtered = records.where((r) {
+            if (selectedView == 0) {
+              final now = DateTime.now();
+              return r.date.year == now.year && r.date.month == now.month;
+            }
+            return r.term == selectedView;
+          }).toList();
           final data = AttendanceRecord.summary(filtered);
           return SafeArea(
             child: SingleChildScrollView(
@@ -139,9 +148,9 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                   // VIEW ATTENDANCE REPORT
                   // ------------------------------------------------
                   if (filtered.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text('No attendance recorded for this term.'),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(selectedView == 0 ? 'No attendance recorded for this month.' : 'No attendance recorded for this term.'),
                     ),
                   _buildReportButton(context, student['id'] as String),
                 ],
@@ -163,44 +172,45 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
-      child: Row(
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          _termButton('Term 1', 0),
-          _termButton('Term 2', 1),
-          _termButton('Term 3', 2),
+          _termButton('This Month', 0),
+          _termButton('Term 1', 1),
+          _termButton('Term 2', 2),
+          _termButton('Term 3', 3),
         ],
       ),
     );
   }
 
   Widget _termButton(String title, int index) {
-    final bool selected = selectedTerm == index;
+    final bool selected = selectedView == index;
 
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            selectedTerm = index;
-          });
-        },
-        borderRadius: BorderRadius.circular(7),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF2F67EA) : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : const Color(0xFF9297A1),
-            ),
+    return InkWell(
+      onTap: () {
+        setState(() {
+          selectedView = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF2F67EA) : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : const Color(0xFF64748B),
           ),
         ),
       ),
@@ -217,7 +227,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -230,7 +240,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
         children: [
           const Text(
             'Overall Attendance',
-            style: TextStyle(fontSize: 12, color: Color(0xFF9297A1)),
+            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
 
           const SizedBox(height: 4),
@@ -247,7 +257,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
           const SizedBox(height: 14),
 
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: percentage / 100,
               minHeight: 7,
@@ -277,7 +287,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -303,7 +313,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
 
           Text(
             title,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF9297A1)),
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
           ),
 
           const SizedBox(height: 3),
@@ -313,7 +323,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF151B2B),
+              color: Color(0xFF17212F),
             ),
           ),
         ],
@@ -328,15 +338,15 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   Widget _buildReportButton(BuildContext context, String studentId) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ParentAttendanceReportScreen(
-                initialTerm: selectedTerm,
+                initialView: selectedView,
                 initialStudentId: studentId,
               ),
             ),
@@ -346,7 +356,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -379,7 +389,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF151B2B),
+                    color: Color(0xFF17212F),
                   ),
                 ),
               ),
@@ -387,7 +397,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
               const Icon(
                 Icons.chevron_right,
                 size: 20,
-                color: Color(0xFF9297A1),
+                color: Color(0xFF64748B),
               ),
             ],
           ),

@@ -9,6 +9,7 @@ class UserItem {
   final String gradeOrClass; // e.g. 'Grade 10-A', 'Mathematics', 'Administration'
   final String status; // 'Active', 'Inactive'
   final String joinedDate;
+  final List<String> parentIds;
 
   const UserItem({
     required this.id,
@@ -19,6 +20,7 @@ class UserItem {
     required this.gradeOrClass,
     this.status = 'Active',
     required this.joinedDate,
+    this.parentIds = const [],
   });
 
   String get initials {
@@ -44,6 +46,7 @@ class UserItem {
     String? gradeOrClass,
     String? status,
     String? joinedDate,
+    List<String>? parentIds,
   }) {
     return UserItem(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class UserItem {
       gradeOrClass: gradeOrClass ?? this.gradeOrClass,
       status: status ?? this.status,
       joinedDate: joinedDate ?? this.joinedDate,
+      parentIds: parentIds ?? this.parentIds,
     );
   }
 
@@ -71,6 +75,7 @@ class UserItem {
       'active': status.toLowerCase() == 'active',
       'status': status,
       'joinedDate': joinedDate,
+      'parentIds': parentIds,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -106,6 +111,13 @@ class UserItem {
         map['department'] ??
         '';
 
+    List<String> parsedParentIds = [];
+    if (map['parentIds'] != null) {
+      if (map['parentIds'] is List) {
+        parsedParentIds = List<String>.from(map['parentIds']);
+      }
+    }
+
     return UserItem(
       id: id,
       name: map['name'] ?? map['fullName'] ?? 'User',
@@ -115,6 +127,7 @@ class UserItem {
       gradeOrClass: parsedGrade,
       status: parsedStatus,
       joinedDate: map['joinedDate'] ?? 'Jan 15, 2026',
+      parentIds: parsedParentIds,
     );
   }
 }
