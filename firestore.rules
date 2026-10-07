@@ -3,6 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ======================================================================
+    // Helpers
+    // ======================================================================
     function signedIn() {
       return request.auth != null;
     }
@@ -19,18 +22,44 @@ service cloud.firestore {
         && userData().role == 'teacher';
     }
 
+    function isActiveAdmin() {
+      return signedIn()
+        && userData().active == true
+        && userData().role == 'admin';
+    }
+
     function active() { return signedIn() && userData().active == true; }
+
+    function isStudent() {
+      return active() && userData().role == 'student';
+    }
+
+    // The signed-in student's own students/{uid} record.
+    function studentRecord() {
+      return get(/databases/$(database)/documents/students/$(request.auth.uid)).data;
+    }
+
     function teaches(classId, schoolId) {
       let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
       return isActiveTeacher() && userData().schoolId == schoolId
         && classroom.schoolId == schoolId && classroom.teacherId == request.auth.uid;
     }
+
+    // Homework is visible to students in the same class and school.
+    function studentSeesClass(classId, schoolId) {
+      return isStudent()
+        && userData().schoolId == schoolId
+        && studentRecord().schoolId == schoolId
+        && studentRecord().classId == classId;
+    }
+
     function linked(studentId, schoolId) {
       let student = get(/databases/$(database)/documents/students/$(studentId)).data;
       return active() && userData().schoolId == schoolId && student.schoolId == schoolId
         && ((userData().role == 'student' && studentId == request.auth.uid)
           || (userData().role == 'parent' && request.auth.uid in student.parentIds));
     }
+
     function validAttendance(data) {
       let student = get(/databases/$(database)/documents/students/$(data.studentId)).data;
       return data.keys().hasAll(['studentId', 'studentName', 'classId', 'schoolId', 'teacherId', 'date', 'status', 'term', 'updatedAt'])
@@ -43,11 +72,15 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    // ======================================================================
+    // Classes, students, users
+    // ======================================================================
     match /classes/{classId} {
       allow read: if isActiveTeacher() && resource.data.teacherId == request.auth.uid
         && resource.data.schoolId == userData().schoolId;
       allow write: if false;
     }
+
     match /students/{studentId} {
       allow read: if active() && resource.data.schoolId == userData().schoolId
         && ((userData().role == 'student' && studentId == request.auth.uid)
@@ -56,20 +89,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    function isActiveAdmin() {
-      return signedIn()
-        && userData().active == true
-        && userData().role == 'admin';
-    }
-
+    // SECURITY: users may only update their own profile while role, active
+    // and schoolId stay unchanged; only admins can change those.
     match /users/{uid} {
-      allow read: if signedIn();
-      allow write: if isActiveAdmin() || (signedIn() && request.auth.uid == uid);
-    }
-
-    match /announcements/{announcementId} {
-      allow read: if signedIn();
-      allow write: if isActiveAdmin() || isActiveTeacher();
+      allow get: if signedIn() && (request.auth.uid == uid || isActiveAdmin());
+      allow list: if isActiveAdmin();
+      allow create, delete: if isActiveAdmin();
+      allow update: if isActiveAdmin()
+        || (signedIn() && request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.active == resource.data.active
+          && request.resource.data.schoolId == resource.data.schoolId);
     }
 
     match /reports/{reportId} {
@@ -77,6 +107,9 @@ service cloud.firestore {
       allow write: if isActiveAdmin() || isActiveTeacher();
     }
 
+    // ======================================================================
+    // Attendance
+    // ======================================================================
     match /attendance/{attendanceId} {
       allow create: if validAttendance(request.resource.data);
       allow update: if validAttendance(request.resource.data)
@@ -89,6 +122,9 @@ service cloud.firestore {
       allow delete: if teaches(resource.data.classId, resource.data.schoolId);
     }
 
+    // ======================================================================
+    // Homework (teacher + student)
+    // ======================================================================
     function homeworkFields(data) {
       return data.keys().hasAll(['schoolId', 'classId', 'className', 'teacherId',
           'subject', 'title', 'description', 'dueDate', 'totalStudents',
@@ -106,17 +142,18 @@ service cloud.firestore {
         && data.submittedCount is int && data.submittedCount >= 0
         && data.updatedAt == request.time;
     }
- 
+
     match /homework/{homeworkId} {
-      allow read: if isActiveTeacher()
-        && resource.data.teacherId == request.auth.uid
-        && resource.data.schoolId == userData().schoolId;
- 
+      allow read: if (isActiveTeacher()
+          && resource.data.teacherId == request.auth.uid
+          && resource.data.schoolId == userData().schoolId)
+        || studentSeesClass(resource.data.classId, resource.data.schoolId);
+
       allow create: if homeworkFields(request.resource.data)
         && teaches(request.resource.data.classId, request.resource.data.schoolId)
         && request.resource.data.createdAt == request.time
         && request.resource.data.submittedCount == 0;
- 
+
       allow update: if isActiveTeacher()
         && resource.data.teacherId == request.auth.uid
         && homeworkFields(request.resource.data)
@@ -126,35 +163,71 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.totalStudents == resource.data.totalStudents
         && request.resource.data.submittedCount == resource.data.submittedCount;
- 
+
       allow delete: if isActiveTeacher()
         && resource.data.teacherId == request.auth.uid
         && resource.data.schoolId == userData().schoolId;
- 
+
       // ---- Submissions: homework/{homeworkId}/submissions/{studentId} ------
-      // Students will get create/update access when the student side is built.
       match /submissions/{studentId} {
+        function homeworkData() {
+          return get(/databases/$(database)/documents/homework/$(homeworkId)).data;
+        }
+
         function ownsHomework() {
           return isActiveTeacher()
-            && get(/databases/$(database)/documents/homework/$(homeworkId)).data.teacherId == request.auth.uid;
+            && homeworkData().teacherId == request.auth.uid;
         }
- 
-        allow read: if ownsHomework();
- 
-        // Teacher can only add a review; nothing the student wrote may change.
-        allow update: if ownsHomework()
-          && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['status', 'feedback', 'reviewedAt'])
-          && request.resource.data.status == 'reviewed'
-          && request.resource.data.feedback is string
-          && request.resource.data.feedback.size() <= 1000
-          && request.resource.data.reviewedAt == request.time;
- 
+
+        // The signed-in student, working on their own submission.
+        function mine() {
+          return isStudent() && studentId == request.auth.uid;
+        }
+
+        function validNewSubmission(data) {
+          return data.keys().hasAll(['studentId', 'studentName', 'status', 'note', 'submittedAt'])
+            && data.keys().hasOnly(['studentId', 'studentName', 'status', 'note', 'submittedAt'])
+            && data.studentId == request.auth.uid
+            && data.studentName == studentRecord().name
+            && data.status == 'submitted'
+            && data.note is string && data.note.size() <= 2000
+            && data.submittedAt == request.time
+            && homeworkData().classId == studentRecord().classId
+            && homeworkData().schoolId == studentRecord().schoolId;
+        }
+
+        // Uses the path ({studentId}), not resource.data, so a student can
+        // also read a submission that does not exist yet (shows "Pending").
+        allow read: if ownsHomework() || mine();
+
+        allow create: if mine() && validNewSubmission(request.resource.data);
+
+        allow update:
+          // Teacher: add a review. Nothing the student wrote may change.
+          if (ownsHomework()
+              && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['status', 'feedback', 'reviewedAt'])
+              && request.resource.data.status == 'reviewed'
+              && request.resource.data.feedback is string
+              && request.resource.data.feedback.size() <= 1000
+              && request.resource.data.reviewedAt == request.time)
+          // Student: resubmit until the teacher has reviewed it.
+          || (mine()
+              && resource.data.status == 'submitted'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['note', 'submittedAt'])
+              && request.resource.data.note is string
+              && request.resource.data.note.size() <= 2000
+              && request.resource.data.submittedAt == request.time);
+
         // Needed so deleting a homework can also clear its submissions.
         allow delete: if ownsHomework();
       }
     }
 
+    // ======================================================================
+    // Announcements (admin + teacher + student) - ONE block only
+    // ======================================================================
     function announcementShape(data) {
       return data.keys().hasAll(['schoolId', 'teacherId', 'title', 'body', 'audience',
           'audienceType', 'classId', 'priority', 'publishAt', 'createdAt'])
@@ -171,25 +244,35 @@ service cloud.firestore {
         && ((data.audienceType == 'class' && teaches(data.classId, data.schoolId))
           || (data.audienceType != 'class' && data.classId == ''));
     }
- 
+
     match /announcements/{announcementId} {
-      allow read: if isActiveTeacher()
-        && resource.data.teacherId == request.auth.uid
-        && resource.data.schoolId == userData().schoolId;
- 
+      allow read: if isActiveAdmin()
+        || (isActiveTeacher()
+          && resource.data.teacherId == request.auth.uid
+          && resource.data.schoolId == userData().schoolId)
+        // Students: announcements for all students, or for their own class.
+        || (isStudent()
+          && userData().schoolId == resource.data.schoolId
+          && (resource.data.audienceType == 'all_students'
+            || (resource.data.audienceType == 'class'
+              && studentRecord().classId == resource.data.classId)));
+
+      // Admins keep full control, as before.
+      allow create, update, delete: if isActiveAdmin();
+
       allow create: if announcementShape(request.resource.data)
         && request.resource.data.createdAt == request.time;
- 
+
       // Edit: same owner and school, original createdAt kept.
       allow update: if resource.data.teacherId == request.auth.uid
         && announcementShape(request.resource.data)
         && request.resource.data.schoolId == resource.data.schoolId
         && request.resource.data.createdAt == resource.data.createdAt;
- 
+
       allow delete: if isActiveTeacher()
         && resource.data.teacherId == request.auth.uid
         && resource.data.schoolId == userData().schoolId;
     }
 
-      }
+  }
 }
