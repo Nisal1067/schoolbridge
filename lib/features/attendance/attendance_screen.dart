@@ -75,10 +75,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      bottomNavigationBar: AttendanceNavigation(
-        teacher: true,
-        teacherLayout: true,
-      ),
+      bottomNavigationBar: widget.showBackButton
+          ? const AttendanceNavigation(teacher: true, teacherLayout: true)
+          : null,
 
       appBar: AppBar(
         backgroundColor: Colors.white,

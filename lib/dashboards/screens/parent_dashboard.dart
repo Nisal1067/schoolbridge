@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
+import '../../features/user_communication/communication_screen.dart';
 import '../../features/homework_announcements/parent/parent_homework_announcements_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
@@ -51,6 +52,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 });
               },
             )
+          : selectedIndex == 3
+          ? const CommunicationScreen()
           : PlaceholderPage(title: pages[selectedIndex]),
 
       bottomNavigationBar: NavigationBar(
@@ -59,7 +62,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
           if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ParentAttendanceScreen()),
+              MaterialPageRoute(
+                builder: (context) => const ParentAttendanceScreen(),
+              ),
             );
             return;
           }
