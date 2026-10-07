@@ -210,28 +210,13 @@ class _ParentHome extends StatelessWidget {
 
         DashboardItem(
           icon: Icons.assignment_outlined,
-          title: 'Homework',
-          subtitle: "Track your child's homework",
+          title: 'Homework & Announcements',
+          subtitle: "Homework, school and class updates",
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => const ParentHomeworkAnnouncementsScreen(),
-              ),
-            );
-          },
-        ),
-
-        DashboardItem(
-          icon: Icons.campaign_outlined,
-          title: 'Announcements',
-          subtitle: 'School and class updates',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    const ParentHomeworkAnnouncementsScreen(initialTab: 1),
               ),
             );
           },
