@@ -34,6 +34,15 @@ service cloud.firestore {
       return active() && userData().role == 'student';
     }
 
+    function isParent() {
+      return active() && userData().role == 'parent';
+    }
+
+    // Parents may read homework and announcements of their own school.
+    function parentInSchool(schoolId) {
+      return isParent() && userData().schoolId == schoolId;
+    }
+
     // The signed-in student's own students/{uid} record.
     function studentRecord() {
       return get(/databases/$(database)/documents/students/$(request.auth.uid)).data;
@@ -147,7 +156,9 @@ service cloud.firestore {
       allow read: if (isActiveTeacher()
           && resource.data.teacherId == request.auth.uid
           && resource.data.schoolId == userData().schoolId)
-        || studentSeesClass(resource.data.classId, resource.data.schoolId);
+        || studentSeesClass(resource.data.classId, resource.data.schoolId)
+        // Parents: the app only queries their children's classes.
+        || parentInSchool(resource.data.schoolId);
 
       allow create: if homeworkFields(request.resource.data)
         && teaches(request.resource.data.classId, request.resource.data.schoolId)
@@ -198,7 +209,9 @@ service cloud.firestore {
 
         // Uses the path ({studentId}), not resource.data, so a student can
         // also read a submission that does not exist yet (shows "Pending").
-        allow read: if ownsHomework() || mine();
+        // Parents: only their own children's submissions (students/{id}.parentIds).
+        allow read: if ownsHomework() || mine()
+          || (isParent() && linked(studentId, homeworkData().schoolId));
 
         allow create: if mine() && validNewSubmission(request.resource.data);
 
@@ -255,7 +268,11 @@ service cloud.firestore {
           && userData().schoolId == resource.data.schoolId
           && (resource.data.audienceType == 'all_students'
             || (resource.data.audienceType == 'class'
-              && studentRecord().classId == resource.data.classId)));
+              && studentRecord().classId == resource.data.classId)))
+        // Parents: announcements for parents, for all students, or for a class
+        // (the app only queries their children's classes).
+        || (parentInSchool(resource.data.schoolId)
+          && resource.data.audienceType in ['parents', 'all_students', 'class']);
 
       // Admins keep full control, as before.
       allow create, update, delete: if isActiveAdmin();
