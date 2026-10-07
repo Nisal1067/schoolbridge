@@ -56,6 +56,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ParentAttendanceScreen()),
+            );
+            return;
+          }
           setState(() {
             selectedIndex = index;
           });

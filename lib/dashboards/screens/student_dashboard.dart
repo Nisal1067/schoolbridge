@@ -52,6 +52,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
+          if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ParentAttendanceScreen()),
+            );
+            return;
+          }
           setState(() {
             selectedIndex = index;
           });

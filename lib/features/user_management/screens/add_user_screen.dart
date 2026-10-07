@@ -22,9 +22,26 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  String? _selectedParentId;
+  List<UserItem> _parents = [];
   bool _isSubmitting = false;
 
   final List<String> _roles = ['Student', 'Teacher', 'Parent', 'Admin'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParents();
+  }
+
+  void _loadParents() {
+    setState(() {
+      _parents = UserManagementService()
+          .currentUsers
+          .where((u) => u.role == 'Parent')
+          .toList();
+    });
+  }
 
   @override
   void dispose() {
@@ -110,6 +127,53 @@ class _AddUserScreenState extends State<AddUserScreen> {
     );
   }
 
+  Widget _buildParentDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedParentId,
+        isExpanded: true,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF1E293B),
+        ),
+        decoration: const InputDecoration(
+          filled: false,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+        hint: const Text(
+          'Select Parent (Optional)',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        ),
+        items: _parents.map((parent) {
+          return DropdownMenuItem(
+            value: parent.id,
+            child: Text(parent.name, overflow: TextOverflow.ellipsis),
+          );
+        }).toList(),
+        onChanged: (val) {
+          setState(() {
+            _selectedParentId = val;
+          });
+        },
+      ),
+    );
+  }
+
   Future<void> _handleCreateUser() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -151,6 +215,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
           : _gradeController.text.trim(),
       status: 'Active',
       joinedDate: joinedString,
+      parentIds: _selectedRole == 'Student' && _selectedParentId != null
+          ? [_selectedParentId!]
+          : [],
     );
 
     final password = _passwordController.text.trim().isNotEmpty
@@ -322,6 +389,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
                       ),
 
                       const SizedBox(height: 18),
+
+                      if (_selectedRole == 'Student') ...[
+                        _buildFieldLabel('Assign Parent'),
+                        _buildParentDropdown(),
+                        const SizedBox(height: 18),
+                      ],
 
                       // Temporary Password Field
                       _buildFieldLabel('Temporary Password'),

@@ -82,7 +82,7 @@ class ClassAssignmentService {
           'classId': id,
           'schoolId': school,
           'active': data['active'],
-          'parentIds': student?['parentIds'] ?? [],
+          'parentIds': data['parentIds'] ?? student?['parentIds'] ?? [],
         }, SetOptions(merge: true));
       } else if (student != null) {
         transaction.delete(studentRef);

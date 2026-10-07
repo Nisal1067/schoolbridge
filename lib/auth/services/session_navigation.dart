@@ -80,7 +80,7 @@ class SessionNavigation extends NavigatorObserver {
       remember('student_attendance');
     } else if (page is ParentAttendanceReportScreen) {
       remember('student_report', {
-        'term': page.initialTerm,
+        'view': page.initialView,
         'studentId': page.initialStudentId,
       });
     }
@@ -150,7 +150,7 @@ class SessionNavigation extends NavigatorObserver {
       }
       if (bookmark['page'] == 'student_report') {
         return ParentAttendanceReportScreen(
-          initialTerm: (saved['term'] as int? ?? 0).clamp(0, 2),
+          initialView: (saved['view'] as int? ?? 0).clamp(0, 3),
           initialStudentId: saved['studentId'] as String?,
         );
       }

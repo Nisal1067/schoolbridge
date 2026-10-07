@@ -23,6 +23,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
   late TextEditingController _classController;
   late TextEditingController _statusController;
 
+  String? _selectedParentId;
+  List<UserItem> _parents = [];
   bool _isSaving = false;
 
   @override
@@ -34,6 +36,20 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _roleController = TextEditingController(text: widget.user.role);
     _classController = TextEditingController(text: widget.user.gradeOrClass);
     _statusController = TextEditingController(text: widget.user.status);
+    _selectedParentId = widget.user.parentIds.isNotEmpty ? widget.user.parentIds.first : null;
+    _loadParents();
+  }
+
+  void _loadParents() {
+    setState(() {
+      _parents = UserManagementService()
+          .currentUsers
+          .where((u) => u.role == 'Parent')
+          .toList();
+      if (_selectedParentId != null && !_parents.any((p) => p.id == _selectedParentId)) {
+        _selectedParentId = null;
+      }
+    });
   }
 
   @override
@@ -103,6 +119,53 @@ class _EditUserScreenState extends State<EditUserScreen> {
     );
   }
 
+  Widget _buildParentDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedParentId,
+        isExpanded: true,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF1E293B),
+        ),
+        decoration: const InputDecoration(
+          filled: false,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+        hint: const Text(
+          'Select Parent (Optional)',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        ),
+        items: _parents.map((parent) {
+          return DropdownMenuItem(
+            value: parent.id,
+            child: Text(parent.name, overflow: TextOverflow.ellipsis),
+          );
+        }).toList(),
+        onChanged: (val) {
+          setState(() {
+            _selectedParentId = val;
+          });
+        },
+      ),
+    );
+  }
+
   Future<void> _handleUpdate() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -117,6 +180,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
       status: _statusController.text.trim().isEmpty
           ? 'Active'
           : _statusController.text.trim(),
+      parentIds: _roleController.text.trim().toLowerCase() == 'student' && _selectedParentId != null
+          ? [_selectedParentId!]
+          : [],
     );
 
     try {
@@ -256,6 +322,12 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       _buildTextField(controller: _classController),
 
                       const SizedBox(height: 18),
+
+                      if (_roleController.text.trim().toLowerCase() == 'student') ...[
+                        _buildFieldLabel('Assign Parent'),
+                        _buildParentDropdown(),
+                        const SizedBox(height: 18),
+                      ],
 
                       _buildFieldLabel('Status'),
                       _buildTextField(controller: _statusController),
