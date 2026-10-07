@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
+import '../../features/homework_announcements/parent/parent_homework_announcements_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -107,12 +108,14 @@ class _ParentHome extends StatelessWidget {
           child: Builder(
             builder: (context) {
               final user = FirebaseAuth.instance.currentUser;
-              final defaultEmailName = user?.email != null && user!.email!.contains('@')
+              final defaultEmailName =
+                  user?.email != null && user!.email!.contains('@')
                   ? user.email!.split('@').first
                   : 'Parent';
               String fallbackName = user?.displayName ?? defaultEmailName;
               if (fallbackName.isNotEmpty && !fallbackName.contains(' ')) {
-                fallbackName = fallbackName[0].toUpperCase() + fallbackName.substring(1);
+                fallbackName =
+                    fallbackName[0].toUpperCase() + fallbackName.substring(1);
               }
 
               if (user == null) {
@@ -193,6 +196,20 @@ class _ParentHome extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => const ParentAttendanceScreen(),
+              ),
+            );
+          },
+        ),
+
+        DashboardItem(
+          icon: Icons.assignment_outlined,
+          title: 'Homework & Announcements',
+          subtitle: "Homework, school and class updates",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ParentHomeworkAnnouncementsScreen(),
               ),
             );
           },
