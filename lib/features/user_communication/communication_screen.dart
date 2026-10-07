@@ -70,8 +70,45 @@ class CommunicationScreen extends StatefulWidget {
 class _CommunicationScreenState extends State<CommunicationScreen> {
   final _service = ChatService();
   late final _conversations = _service.conversations();
+  late final _preferences = _service.conversationPreferences();
   late Future<List<Map<String, dynamic>>> _contacts = _service.contacts();
   bool _opening = false;
+  final _deleting = <String>{};
+
+  Future<void> _delete(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete chat?'),
+        content: const Text(
+          'Remove this conversation from your list only? The other person keeps their chat history. New messages will show it again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || _deleting.contains(id)) return;
+    setState(() => _deleting.add(id));
+    try {
+      await _service.deleteConversation(id);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not delete chat. Please retry.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deleting.remove(id));
+    }
+  }
 
   Future<void> _open(Map<String, dynamic> contact) async {
     if (_opening) return;
@@ -134,66 +171,106 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
               'Conversations',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
-            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _conversations,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Could not load conversations. Check permissions.',
-                    ),
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: _preferences,
+              builder: (context, preferences) {
+                if (preferences.hasError) {
+                  return const Text(
+                    'Could not load chat preferences. Please retry.',
                   );
                 }
-                if (!snapshot.hasData) return const LinearProgressIndicator();
-                final chats = snapshot.data!.docs.toList()
-                  ..sort(
-                    (a, b) =>
-                        ((b.data()['lastMessageAt'] as Timestamp?)
-                                    ?.millisecondsSinceEpoch ??
-                                0)
-                            .compareTo(
-                              (a.data()['lastMessageAt'] as Timestamp?)
-                                      ?.millisecondsSinceEpoch ??
-                                  0,
-                            ),
-                  );
-                if (chats.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text('No conversations yet.'),
-                  );
+                if (!preferences.hasData) {
+                  return const LinearProgressIndicator();
                 }
-                return Column(
-                  children: chats.map((doc) {
-                    final data = doc.data();
-                    final matches = people.where(
-                      (p) =>
-                          p['teacherId'] == data['teacherId'] &&
-                          p['parentId'] == data['parentId'],
-                    );
-                    final title = matches.isEmpty
-                        ? 'Parent-Teacher Chat'
-                        : matches.first['label'] as String;
-                    return ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.chat_bubble_outline),
-                      ),
-                      title: Text(title),
-                      subtitle: Text(
-                        data['lastMessage'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ChatScreen(chatId: doc.id, title: title),
+                final deleted = preferences.data!.data()?['deletedChats'];
+                final hidden = deleted is Map ? deleted : const {};
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _conversations,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          'Could not load conversations. Check permissions.',
                         ),
-                      ),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const LinearProgressIndicator();
+                    }
+                    final chats =
+                        snapshot.data!.docs
+                            .where(
+                              (doc) => !ChatService.isConversationHidden(
+                                hidden[doc.id],
+                                doc.data()['lastMessageAt'],
+                              ),
+                            )
+                            .toList()
+                          ..sort(
+                            (a, b) =>
+                                ((b.data()['lastMessageAt'] as Timestamp?)
+                                            ?.millisecondsSinceEpoch ??
+                                        0)
+                                    .compareTo(
+                                      (a.data()['lastMessageAt'] as Timestamp?)
+                                              ?.millisecondsSinceEpoch ??
+                                          0,
+                                    ),
+                          );
+                    if (chats.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text('No conversations yet.'),
+                      );
+                    }
+                    return Column(
+                      children: chats.map((doc) {
+                        final data = doc.data();
+                        final matches = people.where(
+                          (p) =>
+                              p['teacherId'] == data['teacherId'] &&
+                              p['parentId'] == data['parentId'],
+                        );
+                        final title = matches.isEmpty
+                            ? 'Parent-Teacher Chat'
+                            : matches.first['label'] as String;
+                        return ListTile(
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.chat_bubble_outline),
+                          ),
+                          title: Text(title),
+                          subtitle: Text(
+                            data['lastMessage'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: IconButton(
+                            tooltip: 'Delete chat for me',
+                            onPressed: _deleting.contains(doc.id)
+                                ? null
+                                : () => _delete(doc.id),
+                            icon: _deleting.contains(doc.id)
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.delete_outline),
+                          ),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ChatScreen(chatId: doc.id, title: title),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),
