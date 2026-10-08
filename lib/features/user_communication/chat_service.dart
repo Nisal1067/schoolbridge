@@ -5,8 +5,9 @@ import 'chat_attachment_api.dart';
 
 import 'dart:typed_data';
 import 'dart:async';
-
 import '../attendance/services/attendance_service.dart';
+import '../notifications/services/notification_service.dart';
+
 
 class ChatService {
   static String sendError(Object error) {
@@ -93,42 +94,61 @@ class ChatService {
     final profile = (await db.collection('users').doc(uid).get()).data()!;
     final attendance = AttendanceService();
     final result = <String, Map<String, dynamic>>{};
-    if (profile['role'] == 'teacher') {
+    if (profile['role']?.toString().toLowerCase() == 'teacher') {
       for (final classroom in await attendance.teacherClasses()) {
         for (final student in await attendance.studentsForClass(classroom)) {
           final doc = (await db.collection('students').doc(student['id']).get())
               .data()!;
-          for (final parent in List<String>.from(doc['parentIds'] ?? [])) {
-            result[parent] = {
+          for (final parentId in List<String>.from(doc['parentIds'] ?? [])) {
+            if (parentId.trim().isEmpty) continue;
+            String parentName = 'Parent';
+            try {
+              final parentDoc = await db.collection('users').doc(parentId).get();
+              if (parentDoc.exists && parentDoc.data()?['name'] != null) {
+                parentName = parentDoc.data()!['name'];
+              }
+            } catch (_) {}
+            result[parentId] = {
               'schoolId': profile['schoolId'],
               'teacherId': uid,
-              'parentId': parent,
+              'parentId': parentId,
               'studentId': student['id'],
               'classId': classroom['id'],
-              'label': '${student['name']} - Parent',
+              'label': '${student['name']}\'s Parent ($parentName)',
             };
           }
         }
       }
-    } else if (profile['role'] == 'parent') {
+    } else if (profile['role']?.toString().toLowerCase() == 'parent') {
       for (final child in await attendance.linkedStudents()) {
-        final classroom =
-            (await db.collection('classes').doc(child['classId']).get()).data();
+        final classId = child['classId'] as String?;
+        if (classId == null || classId.isEmpty) continue;
+        Map<String, dynamic>? classroom;
+        try {
+          classroom = (await db.collection('classes').doc(classId).get()).data();
+        } catch (_) {}
         if (classroom == null) continue;
         final teachers = <String>{
           ...List<String>.from(classroom['teacherIds'] ?? []),
           if ((classroom['teacherId'] as String? ?? '').isNotEmpty)
             classroom['teacherId'] as String,
         };
-        for (final teacher in teachers) {
-          result[teacher] = {
+        for (final teacherId in teachers) {
+          if (teacherId.trim().isEmpty) continue;
+          String teacherName = 'Teacher';
+          try {
+            final teacherDoc = await db.collection('users').doc(teacherId).get();
+            if (teacherDoc.exists && teacherDoc.data()?['name'] != null) {
+              teacherName = teacherDoc.data()!['name'];
+            }
+          } catch (_) {}
+          result[teacherId] = {
             'schoolId': profile['schoolId'],
-            'teacherId': teacher,
+            'teacherId': teacherId,
             'parentId': uid,
             'studentId': child['id'],
             'classId': child['classId'],
-            'label':
-                '${classroom['name']} - Teacher (${teacher.substring(0, teacher.length < 6 ? teacher.length : 6)})',
+            'label': '${classroom['name']} - $teacherName',
           };
         }
       }
@@ -173,6 +193,11 @@ class ChatService {
   }) async {
     final ref = db.collection('chats').doc(id);
     final batch = db.batch();
+    
+    final messagePreview = text.trim().isNotEmpty 
+        ? text.trim() 
+        : 'Attachment: ${attachment!['name']}';
+
     batch.set(ref.collection('messages').doc(messageId), {
       'senderId': uid,
       'text': text.trim(),
@@ -180,11 +205,34 @@ class ChatService {
       'attachment': ?attachment,
     });
     batch.update(ref, {
-      'lastMessage': text.trim().isNotEmpty
-          ? text.trim()
-          : 'Attachment: ${attachment!['name']}',
+      'lastMessage': messagePreview,
       'lastMessageAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
+
+    try {
+      final parts = id.split('_');
+      if (parts.length == 2) {
+        final tId = Uri.decodeComponent(parts[0]);
+        final pId = Uri.decodeComponent(parts[1]);
+        final recipientId = tId == uid ? pId : tId;
+
+        // Fetch our profile to get our name
+        final myDoc = await db.collection('users').doc(uid).get();
+        final myName = myDoc.data()?['name'] ?? 'Someone';
+
+        // Send Notification
+        await NotificationService().sendNotification(
+          recipientId: recipientId,
+          title: 'New message from $myName',
+          body: messagePreview,
+          type: 'chat',
+          relatedId: id, // Pass raw chatId
+        );
+      }
+    } catch (_) {
+      // Ignore notification failures so it doesn't break chat sending
+    }
   }
 }
+

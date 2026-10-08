@@ -8,7 +8,6 @@ import 'screens/add_homework_screen.dart';
 import 'screens/homework_detail_screen.dart';
 import 'services/homework_announcement_service.dart';
 import 'widgets/task_widgets.dart';
-import '../user_communication/teacher_chat_fab.dart';
 
 /// Teacher "Tasks" tab: Homework and Announcements lists.
 ///
@@ -68,18 +67,12 @@ class _HomeworkAnnouncementsScreenState
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: TaskColors.background,
+      color: const Color(0xFFF8FAFC),
       child: Column(
         children: [
-          _header(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                kTeacherFabClearance,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 84),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -98,18 +91,14 @@ class _HomeworkAnnouncementsScreenState
                     onTap: _tab == 0 ? _addHomework : _addAnnouncement,
                     child: Text(
                       _tab == 0 ? '+ Add Homework' : '+ Add Announcement',
-                      style: const TextStyle(
-                        color: TaskColors.blue,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
                   const SizedBox(height: 14),
                   _searchField(),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   _filterRow(),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   if (_tab == 0) _homeworkList() else _announcementList(),
                 ],
               ),
@@ -120,41 +109,6 @@ class _HomeworkAnnouncementsScreenState
     );
   }
 
-  Widget _header() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
-      child: Row(
-        children: [
-          // TODO: open the side navigation drawer once it is built.
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.menu, color: TaskColors.ink),
-          ),
-          const Expanded(
-            child: Text(
-              'Homework & Announcements',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                color: TaskColors.ink,
-              ),
-            ),
-          ),
-          // TODO: open notifications once that screen is built.
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: TaskColors.ink,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _searchField() {
     return TextField(
@@ -183,35 +137,36 @@ class _HomeworkAnnouncementsScreenState
         ? const ['All', 'Active', 'Closed']
         : const ['All', 'Published', 'Scheduled'];
     final selected = _tab == 0 ? _homeworkFilter : _announcementFilter;
-    return Row(
-      children: [
-        for (var i = 0; i < labels.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(labels[i]),
-              selected: selected == i,
-              showCheckmark: false,
-              onSelected: (_) => setState(() {
-                if (_tab == 0) {
-                  _homeworkFilter = i;
-                } else {
-                  _announcementFilter = i;
-                }
-              }),
-              selectedColor: TaskColors.blue,
-              backgroundColor: Colors.white,
-              side: BorderSide(
-                color: selected == i ? TaskColors.blue : TaskColors.border,
-              ),
-              labelStyle: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: selected == i ? Colors.white : TaskColors.grey,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(labels[i]),
+                selected: selected == i,
+                showCheckmark: false,
+                onSelected: (_) => setState(() {
+                  if (_tab == 0) {
+                    _homeworkFilter = i;
+                  } else {
+                    _announcementFilter = i;
+                  }
+                }),
+                selectedColor: const Color(0xFF4F46E5),
+                backgroundColor: Colors.white,
+                side: BorderSide(color: selected == i ? const Color(0xFF4F46E5) : const Color(0xFFE2E8F0)),
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: selected == i ? Colors.white : const Color(0xFF64748B),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -442,10 +397,18 @@ class _HomeworkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -466,12 +429,9 @@ class _HomeworkCard extends StatelessWidget {
                   color: TaskColors.blueSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.menu_book_outlined,
-                  color: TaskColors.blue,
-                ),
+                child: const Icon(Icons.menu_book_outlined, color: Color(0xFF4F46E5)),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,11 +440,7 @@ class _HomeworkCard extends StatelessWidget {
                       homework.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: TaskColors.ink,
-                      ),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -545,13 +501,21 @@ class _AnnouncementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = announcement;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),

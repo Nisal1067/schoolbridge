@@ -18,24 +18,24 @@ service cloud.firestore {
 
     function isActiveTeacher() {
       return signedIn()
-        && userData().active == true
-        && userData().role == 'teacher';
+        && userData().get('active', true) == true
+        && userData().get('role', '').lower() == 'teacher';
     }
 
     function isActiveAdmin() {
       return signedIn()
-        && userData().active == true
-        && userData().role == 'admin';
+        && userData().get('active', true) == true
+        && userData().get('role', '').lower() == 'admin';
     }
 
-    function active() { return signedIn() && userData().active == true; }
+    function active() { return signedIn() && userData().get('active', true) == true; }
 
     function isStudent() {
-      return active() && userData().role == 'student';
+      return active() && userData().get('role', '').lower() == 'student';
     }
 
     function isParent() {
-      return active() && userData().role == 'parent';
+      return active() && userData().get('role', '').lower() == 'parent';
     }
 
     // Parents may read homework and announcements of their own school.
@@ -87,9 +87,8 @@ service cloud.firestore {
     // Classes, students, users
     // ======================================================================
     match /classes/{classId} {
-      // Parents fetch the class referenced by their linked student's profile.
-      allow get: if isParent() && resource.data.schoolId == userData().schoolId;
-      allow read: if isActiveAdmin() || (isActiveTeacher()
+      allow get: if isParent() && resource != null && resource.data.schoolId == userData().schoolId;
+      allow read: if isActiveAdmin() || (isActiveTeacher() && resource != null
         && resource.data.schoolId == userData().schoolId
         && (resource.data.get('teacherId', '') == request.auth.uid
           || request.auth.uid in resource.data.get('teacherIds', [])));
@@ -97,7 +96,7 @@ service cloud.firestore {
     }
 
     match /students/{studentId} {
-      allow read: if isActiveAdmin() || (active() && resource.data.schoolId == userData().schoolId
+      allow read: if isActiveAdmin() || (active() && resource != null && resource.data.schoolId == userData().schoolId
         && ((userData().role == 'student' && studentId == request.auth.uid)
           || (userData().role == 'parent' && request.auth.uid in resource.data.parentIds)
           || teaches(resource.data.classId, resource.data.schoolId)));
@@ -107,11 +106,20 @@ service cloud.firestore {
     // SECURITY: users may only update their own profile while role, active
     // and schoolId stay unchanged; only admins can change those.
     match /users/{uid} {
-      allow get: if signedIn() && (request.auth.uid == uid || isActiveAdmin());
+      allow get: if signedIn() && (
+        request.auth.uid == uid || 
+        isActiveAdmin() || 
+        (active() && resource != null && resource.data.schoolId == userData().schoolId)
+      );
       allow list, create, delete: if isActiveAdmin();
       allow update: if isActiveAdmin() || (signedIn() && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['role', 'active', 'schoolId', 'classId', 'class', 'gradeOrClass']));
+          
+      match /notifications/{notificationId} {
+        allow read, update, delete: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn();
+      }
     }
 
     function validChatPair(data) {
@@ -120,8 +128,8 @@ service cloud.firestore {
       let child = get(/databases/$(database)/documents/students/$(data.studentId)).data;
       let classroom = get(/databases/$(database)/documents/classes/$(data.classId)).data;
       return active() && request.auth.uid in data.participantIds
-        && teacher.active == true && teacher.role == 'teacher'
-        && parent.active == true && parent.role == 'parent'
+        && teacher.get('active', true) == true && teacher.get('role', '').lower() == 'teacher'
+        && parent.get('active', true) == true && parent.get('role', '').lower() == 'parent'
         && teacher.schoolId == data.schoolId && parent.schoolId == data.schoolId
         && child.schoolId == data.schoolId && child.classId == data.classId
         && data.parentId in child.get('parentIds', [])
@@ -132,8 +140,8 @@ service cloud.firestore {
 
     match /chats/{chatId} {
       allow get: if active() && !exists(/databases/$(database)/documents/chats/$(chatId))
-        && userData().role in ['teacher', 'parent'];
-      allow read: if active() && userData().role in ['teacher', 'parent']
+        && userData().get('role', '').lower() in ['teacher', 'parent'];
+      allow read: if active() && userData().get('role', '').lower() in ['teacher', 'parent']
         && request.auth.uid in resource.data.participantIds;
       allow create: if validChatPair(request.resource.data)
         && chatId == request.resource.data.teacherId + '_' + request.resource.data.parentId
@@ -166,7 +174,7 @@ service cloud.firestore {
               && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.uid == request.auth.uid
               && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.attachment == data.attachment);
         }
-        allow read: if active() && userData().role in ['teacher', 'parent']
+        allow read: if active() && userData().get('role', '').lower() in ['teacher', 'parent']
           && request.auth.uid in chat().participantIds;
         allow create: if validChatPair(chat())
           && request.resource.data.keys().hasAll(['senderId', 'text', 'sentAt'])
