@@ -375,15 +375,54 @@ class _TeacherHome extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const _ScheduleCard(time: '08:00 AM', grade: 'Grade 10A', subject: 'Mathematics', color: Color(0xFF4F46E5)),
-                  const SizedBox(height: 12),
-                  const _ScheduleCard(time: '10:00 AM', grade: 'Grade 9B', subject: 'Mathematics', color: Color(0xFF4F46E5)),
-                  const SizedBox(height: 12),
-                  const _ScheduleCard(time: '11:00 AM', grade: 'Grade 8D', subject: 'Homework Review', color: Color(0xFF059669)),
-                  const SizedBox(height: 12),
-                  const _ScheduleCard(time: '12:00 PM', grade: 'Grade 11A', subject: 'Homework Review', color: Color(0xFF059669)),
-                  const SizedBox(height: 40),
+                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    stream: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final data = snapshot.hasData ? snapshot.data!.data() ?? {} : {};
+                      final schedule = data['schedule'] is List ? data['schedule'] as List : [];
+                      
+                      if (schedule.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 36),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFF1F5F9))
+                          ),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.event_available_rounded, size: 40, color: Color(0xFFCBD5E1)),
+                              SizedBox(height: 12),
+                              Text('No classes scheduled for today', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                            ]
+                          )
+                        );
+                      }
+
+                      return Column(
+                        children: schedule.map((item) {
+                          if (item is! Map) return const SizedBox.shrink();
+                          final time = item['time']?.toString() ?? 'N/A';
+                          final grade = item['className']?.toString() ?? 'Unknown Class';
+                          final subject = item['subject']?.toString() ?? 'General';
+                          // Give some variety in color based on index or subject
+                          final isMath = subject.toLowerCase().contains('math');
+                          final isSci = subject.toLowerCase().contains('sci');
+                          final color = isMath ? const Color(0xFF4F46E5) : (isSci ? const Color(0xFFD97706) : const Color(0xFF059669));
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _ScheduleCard(time: time, grade: grade, subject: subject, color: color),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
