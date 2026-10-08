@@ -93,42 +93,53 @@ class ChatService {
     final profile = (await db.collection('users').doc(uid).get()).data()!;
     final attendance = AttendanceService();
     final result = <String, Map<String, dynamic>>{};
-    if (profile['role'] == 'teacher') {
+    if (profile['role']?.toString().toLowerCase() == 'teacher') {
       for (final classroom in await attendance.teacherClasses()) {
         for (final student in await attendance.studentsForClass(classroom)) {
           final doc = (await db.collection('students').doc(student['id']).get())
               .data()!;
-          for (final parent in List<String>.from(doc['parentIds'] ?? [])) {
-            result[parent] = {
+          for (final parentId in List<String>.from(doc['parentIds'] ?? [])) {
+            if (parentId.trim().isEmpty) continue;
+            final parentDoc = await db.collection('users').doc(parentId).get();
+            final parentName = parentDoc.exists && parentDoc.data()?['name'] != null
+                ? parentDoc.data()!['name']
+                : 'Parent';
+            result[parentId] = {
               'schoolId': profile['schoolId'],
               'teacherId': uid,
-              'parentId': parent,
+              'parentId': parentId,
               'studentId': student['id'],
               'classId': classroom['id'],
-              'label': '${student['name']} - Parent',
+              'label': '${student['name']}\'s Parent ($parentName)',
             };
           }
         }
       }
-    } else if (profile['role'] == 'parent') {
+    } else if (profile['role']?.toString().toLowerCase() == 'parent') {
       for (final child in await attendance.linkedStudents()) {
+        final classId = child['classId'] as String?;
+        if (classId == null || classId.isEmpty) continue;
         final classroom =
-            (await db.collection('classes').doc(child['classId']).get()).data();
+            (await db.collection('classes').doc(classId).get()).data();
         if (classroom == null) continue;
         final teachers = <String>{
           ...List<String>.from(classroom['teacherIds'] ?? []),
           if ((classroom['teacherId'] as String? ?? '').isNotEmpty)
             classroom['teacherId'] as String,
         };
-        for (final teacher in teachers) {
-          result[teacher] = {
+        for (final teacherId in teachers) {
+          if (teacherId.trim().isEmpty) continue;
+          final teacherDoc = await db.collection('users').doc(teacherId).get();
+          final teacherName = teacherDoc.exists && teacherDoc.data()?['name'] != null
+              ? teacherDoc.data()!['name']
+              : 'Teacher';
+          result[teacherId] = {
             'schoolId': profile['schoolId'],
-            'teacherId': teacher,
+            'teacherId': teacherId,
             'parentId': uid,
             'studentId': child['id'],
             'classId': child['classId'],
-            'label':
-                '${classroom['name']} - Teacher (${teacher.substring(0, teacher.length < 6 ? teacher.length : 6)})',
+            'label': '${classroom['name']} - $teacherName',
           };
         }
       }
