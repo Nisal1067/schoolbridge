@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../../auth/widgets/logout_button.dart';
 
@@ -11,6 +12,9 @@ import '../../features/attendance/parent_attendance_screen.dart';
 import '../../features/user_communication/communication_screen.dart';
 import '../../features/homework_announcements/parent/parent_homework_announcements_screen.dart';
 import '../../features/profile/parent_profile_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
+import '../../features/notifications/services/notification_service.dart';
+import '../../features/notifications/models/in_app_notification.dart';
 
 class ParentDashboard extends StatefulWidget {
   final int initialIndex;
@@ -30,6 +34,47 @@ class _ParentDashboardState extends State<ParentDashboard> {
     'Chat',
     'Profile',
   ];
+
+  StreamSubscription? _notifSub;
+  int _lastNotifCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _notifSub = NotificationService().myNotifications.listen((notifications) {
+      if (!mounted) return;
+      final unreadCount = notifications.where((n) => !n.isRead).length;
+      if (unreadCount > _lastNotifCount && notifications.isNotEmpty && !notifications.first.isRead) {
+        if (_lastNotifCount != 0) { // skip on initial data load
+          final newNotif = notifications.first;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${newNotif.title}\n${newNotif.body}'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF4F46E5),
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'View', 
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                },
+              ),
+            ),
+          );
+        }
+        _lastNotifCount = unreadCount;
+      } else if (unreadCount < _lastNotifCount) {
+        _lastNotifCount = unreadCount;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notifSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +99,45 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ],
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF64748B)),
+          StreamBuilder<List<InAppNotification>>(
+            stream: NotificationService().myNotifications,
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data?.where((n) => !n.isRead).length ?? 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF64748B)),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444), // red-500
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const LogoutButton(),
           const SizedBox(width: 8),
