@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/attachment.dart';
 import '../models/homework.dart';
 import '../services/homework_announcement_service.dart';
+import '../services/student_homework_service.dart' show friendlyError;
+import '../widgets/attachment_widgets.dart';
 import '../widgets/task_widgets.dart';
 import '../../user_communication/teacher_chat_fab.dart';
 
@@ -27,6 +30,10 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
   bool _saving = false;
   String? _loadError;
 
+  /// Files already uploaded (when editing) and files chosen this session.
+  List<Attachment> _savedFiles = [];
+  List<PickedAttachment> _newFiles = [];
+
   bool get _editing => widget.existing != null;
 
   @override
@@ -38,6 +45,7 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
       _descriptionController.text = existing.description;
       _classId = existing.classId;
       _dueDate = existing.dueDate;
+      _savedFiles = [...existing.attachments];
       _subject = kSubjects.contains(existing.subject)
           ? existing.subject
           : kSubjects.first;
@@ -116,6 +124,8 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
           title: title,
           description: _descriptionController.text,
           dueDate: _dueDate,
+          keep: _savedFiles,
+          newFiles: _newFiles,
         );
       } else {
         final classroom = _classes.firstWhere((c) => c['id'] == _classId);
@@ -125,6 +135,7 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
           title: title,
           description: _descriptionController.text,
           dueDate: _dueDate,
+          files: _newFiles,
         );
       }
       if (!mounted) return;
@@ -133,10 +144,13 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
         _editing ? 'Homework updated.' : 'Homework assigned.',
       );
       Navigator.pop(context);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      showTaskSnack(context, 'Could not save homework. Please try again.');
+      showTaskSnack(
+        context,
+        friendlyError(e, 'Could not save homework. Please try again.'),
+      );
     }
   }
 
@@ -283,34 +297,13 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
         ),
         const SizedBox(height: 16),
         const FieldLabel('Attachments'),
-        // Attachments need Firebase Storage, which is not in pubspec.yaml yet.
-        DashedBox(
-          padding: const EdgeInsets.symmetric(vertical: 22),
+        AttachmentPickerSection(
+          saved: _savedFiles,
+          pending: _newFiles,
+          onSavedChanged: (files) => setState(() => _savedFiles = files),
+          onPendingChanged: (files) => setState(() => _newFiles = files),
+          enabled: !_saving,
           fill: Colors.white,
-          onTap: () => showTaskSnack(
-            context,
-            'Attachments are coming soon. Add instructions in the '
-            'description for now.',
-          ),
-          child: const Column(
-            children: [
-              Icon(Icons.file_upload_outlined, color: TaskColors.blue),
-              SizedBox(height: 8),
-              Text(
-                'Upload PDF or Images',
-                style: TextStyle(
-                  color: TaskColors.blue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Max file size 10MB',
-                style: TextStyle(color: TaskColors.grey, fontSize: 12),
-              ),
-            ],
-          ),
         ),
         const SizedBox(height: 28),
         TaskPrimaryButton(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/attachment.dart';
 import '../models/homework.dart';
 import '../models/submission.dart';
 import '../services/student_homework_service.dart';
+import '../widgets/attachment_widgets.dart';
 import '../widgets/task_widgets.dart';
 
 /// Student view of one assignment: instructions, submit and teacher feedback.
@@ -27,6 +29,10 @@ class _StudentHomeworkDetailScreenState
   final _noteController = TextEditingController();
   bool _noteLoaded = false;
   bool _saving = false;
+
+  /// Files already handed in that the student keeps, and files chosen now.
+  List<Attachment> _keepFiles = [];
+  List<PickedAttachment> _newFiles = [];
 
   @override
   void dispose() {
@@ -65,6 +71,7 @@ class _StudentHomeworkDetailScreenState
                 final submission = subSnapshot.data;
                 if (!_noteLoaded) {
                   _noteController.text = submission?.note ?? '';
+                  _keepFiles = [...?submission?.attachments];
                   _noteLoaded = true;
                 }
                 return _content(homework, submission);
@@ -199,19 +206,15 @@ class _StudentHomeworkDetailScreenState
             ),
           ),
           _card(
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Attachments',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
-                SizedBox(height: 8),
-                // Teacher files appear here once attachments exist.
-                Text(
-                  'No files attached.',
-                  style: TextStyle(fontSize: 14, color: TaskColors.grey),
-                ),
+                const SizedBox(height: 8),
+                AttachmentList(attachments: h.attachments),
               ],
             ),
           ),
@@ -247,6 +250,11 @@ class _StudentHomeworkDetailScreenState
                         color: TaskColors.ink,
                       ),
                     ),
+                  ],
+                  // Before review the files are listed in the editor below.
+                  if (reviewed) ...[
+                    const SizedBox(height: 10),
+                    AttachmentList(attachments: submission.attachments),
                   ],
                 ],
               ),
@@ -295,33 +303,15 @@ class _StudentHomeworkDetailScreenState
               ),
             ),
             const SizedBox(height: 16),
-            // File upload needs Firebase Storage, which is not set up yet.
-            DashedBox(
-              padding: const EdgeInsets.symmetric(vertical: 22),
-              onTap: () => showTaskSnack(
-                context,
-                'File upload is coming soon. Add your answer in the note '
-                'for now.',
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.cloud_upload_outlined, color: TaskColors.blue),
-                  SizedBox(height: 8),
-                  Text(
-                    'Upload Homework file',
-                    style: TextStyle(
-                      color: TaskColors.blue,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'PDF, JPG or PNG up to 10MB',
-                    style: TextStyle(color: TaskColors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
+            AttachmentPickerSection(
+              saved: _keepFiles,
+              pending: _newFiles,
+              onSavedChanged: (files) => setState(() => _keepFiles = files),
+              onPendingChanged: (files) => setState(() => _newFiles = files),
+              enabled: !_saving,
+              icon: Icons.cloud_upload_outlined,
+              title: 'Upload Homework file',
+              subtitle: 'PDF, JPG or PNG up to 10MB, max 5 files',
             ),
             const SizedBox(height: 16),
             TaskPrimaryButton(
@@ -352,7 +342,9 @@ class _StudentHomeworkDetailScreenState
       await _service.submitHomework(
         homework: h,
         note: _noteController.text,
-        resubmit: existing != null,
+        existing: existing,
+        keep: _keepFiles,
+        newFiles: _newFiles,
       );
       if (!mounted) return;
       setState(() => _saving = false);

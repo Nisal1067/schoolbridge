@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../attendance/services/attendance_service.dart';
 import '../models/announcement.dart';
+import '../models/attachment.dart';
 import '../models/homework.dart';
 import '../models/submission.dart';
+import 'attachment_service.dart';
 
 /// Firestore access for teacher homework and announcements.
 ///
@@ -12,12 +14,15 @@ import '../models/submission.dart';
 class HomeworkAnnouncementService {
   final FirebaseFirestore _firestore;
   final AttendanceService _attendance;
+  final AttachmentUploader _uploader;
 
   HomeworkAnnouncementService({
     FirebaseFirestore? firestore,
     AttendanceService? attendance,
+    AttachmentUploader? uploader,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _attendance = attendance ?? AttendanceService();
+       _attendance = attendance ?? AttendanceService(),
+       _uploader = uploader ?? AttachmentUploader();
 
   Future<List<Map<String, dynamic>>> teacherClasses() =>
       _attendance.teacherClasses();
@@ -51,23 +56,41 @@ class HomeworkAnnouncementService {
     required String title,
     required String description,
     required DateTime dueDate,
+    List<PickedAttachment> files = const [],
   }) async {
     final user = await _attendance.profile();
     final roster = await _attendance.studentsForClass(classroom);
-    await _firestore.collection('homework').add({
-      'schoolId': classroom['schoolId'],
-      'classId': classroom['id'],
-      'className': classroom['name'],
-      'teacherId': user['uid'],
-      'subject': subject,
-      'title': title.trim(),
-      'description': description.trim(),
-      'dueDate': Timestamp.fromDate(_dateOnly(dueDate)),
-      'totalStudents': roster.length,
-      'submittedCount': 0,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    // The id is needed first, because the files are stored under it.
+    final ref = _firestore.collection('homework').doc();
+    final uploaded = await _uploader.uploadAll(
+      folder: AttachmentUploader.homeworkFolder(
+        schoolId: classroom['schoolId'] as String,
+        teacherId: user['uid'] as String,
+        homeworkId: ref.id,
+      ),
+      files: files,
+    );
+    try {
+      await ref.set({
+        'schoolId': classroom['schoolId'],
+        'classId': classroom['id'],
+        'className': classroom['name'],
+        'teacherId': user['uid'],
+        'subject': subject,
+        'title': title.trim(),
+        'description': description.trim(),
+        'dueDate': Timestamp.fromDate(_dateOnly(dueDate)),
+        'totalStudents': roster.length,
+        'submittedCount': 0,
+        'attachments': [for (final file in uploaded) file.toMap()],
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // Do not leave files behind for a homework that was never saved.
+      await _uploader.deleteAll(uploaded);
+      rethrow;
+    }
   }
 
   Future<void> updateHomework(
@@ -76,14 +99,37 @@ class HomeworkAnnouncementService {
     required String title,
     required String description,
     required DateTime dueDate,
-  }) {
-    return _firestore.collection('homework').doc(homework.id).update({
-      'subject': subject,
-      'title': title.trim(),
-      'description': description.trim(),
-      'dueDate': Timestamp.fromDate(_dateOnly(dueDate)),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    List<Attachment> keep = const [],
+    List<PickedAttachment> newFiles = const [],
+  }) async {
+    final uploaded = await _uploader.uploadAll(
+      folder: AttachmentUploader.homeworkFolder(
+        schoolId: homework.schoolId,
+        teacherId: homework.teacherId,
+        homeworkId: homework.id!,
+      ),
+      files: newFiles,
+    );
+    try {
+      await _firestore.collection('homework').doc(homework.id).update({
+        'subject': subject,
+        'title': title.trim(),
+        'description': description.trim(),
+        'dueDate': Timestamp.fromDate(_dateOnly(dueDate)),
+        'attachments': [
+          for (final file in [...keep, ...uploaded]) file.toMap(),
+        ],
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      await _uploader.deleteAll(uploaded);
+      rethrow;
+    }
+    // Files the teacher removed in the form are deleted once the save worked.
+    final keptPaths = keep.map((file) => file.path).toSet();
+    await _uploader.deleteAll(
+      homework.attachments.where((file) => !keptPaths.contains(file.path)),
+    );
   }
 
   /// Deletes the submissions first (Firestore does not cascade), then the
@@ -92,6 +138,16 @@ class HomeworkAnnouncementService {
   Future<void> deleteHomework(String id) async {
     final homeworkRef = _firestore.collection('homework').doc(id);
     final submissions = await homeworkRef.collection('submissions').get();
+    final homeworkSnapshot = await homeworkRef.get();
+    final files = [
+      ...Attachment.listFrom(homeworkSnapshot.data()?['attachments']),
+      for (final doc in submissions.docs)
+        ...Attachment.listFrom(doc.data()['attachments']),
+    ];
+    // Files go first: the storage server confirms that this teacher owns the
+    // homework by reading its document, which is deleted below. Deleting files
+    // is best effort and never throws, so a failure here cannot block the rest.
+    await _uploader.deleteAll(files);
     // Batches of 15: each delete triggers a rule lookup (20-access limit).
     for (var start = 0; start < submissions.docs.length; start += 15) {
       final batch = _firestore.batch();

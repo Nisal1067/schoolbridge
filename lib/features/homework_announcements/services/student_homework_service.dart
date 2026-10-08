@@ -5,9 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../attendance/services/attendance_service.dart';
 import '../models/announcement.dart';
+import '../models/attachment.dart';
 import '../models/homework.dart';
 import '../models/student_homework.dart';
 import '../models/submission.dart';
+import 'attachment_service.dart';
 
 /// Shows a service message (e.g. "Please sign in again.") or a fallback.
 String friendlyError(Object error, String fallback) =>
@@ -20,12 +22,15 @@ String friendlyError(Object error, String fallback) =>
 class StudentHomeworkService {
   final FirebaseFirestore _firestore;
   final AttendanceService _attendance;
+  final AttachmentUploader _uploader;
 
   StudentHomeworkService({
     FirebaseFirestore? firestore,
     AttendanceService? attendance,
+    AttachmentUploader? uploader,
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _attendance = attendance ?? AttendanceService();
+       _attendance = attendance ?? AttendanceService(),
+       _uploader = uploader ?? AttachmentUploader();
 
   String get _uid {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -146,31 +151,64 @@ class StudentHomeworkService {
       .snapshots()
       .map((doc) => doc.exists ? Submission.fromDoc(doc) : null);
 
-  /// First submission creates the record; later ones update the note and time.
+  /// First submission creates the record; later ones update the note, the
+  /// files and the time.
+  ///
+  /// [keep] are the files already saved that the student wants to keep and
+  /// [newFiles] are files chosen in this session. Saved files that are not in
+  /// [keep] are deleted once the submission is stored.
   Future<void> submitHomework({
     required Homework homework,
     required String note,
-    required bool resubmit,
+    Submission? existing,
+    List<Attachment> keep = const [],
+    List<PickedAttachment> newFiles = const [],
   }) async {
+    final uid = _uid;
     final ref = _firestore
         .collection('homework')
         .doc(homework.id)
         .collection('submissions')
-        .doc(_uid);
-    if (resubmit) {
-      await ref.update({
-        'note': note.trim(),
-        'submittedAt': FieldValue.serverTimestamp(),
-      });
-    } else {
-      final student = await studentRecord();
-      await ref.set({
-        'studentId': _uid,
-        'studentName': student['name'],
-        'status': 'submitted',
-        'note': note.trim(),
-        'submittedAt': FieldValue.serverTimestamp(),
-      });
+        .doc(uid);
+    final uploaded = await _uploader.uploadAll(
+      folder: AttachmentUploader.submissionFolder(
+        schoolId: homework.schoolId,
+        homeworkId: homework.id!,
+        studentId: uid,
+      ),
+      files: newFiles,
+    );
+    final attachments = [
+      for (final file in [...keep, ...uploaded]) file.toMap(),
+    ];
+    try {
+      if (existing != null) {
+        await ref.update({
+          'note': note.trim(),
+          'attachments': attachments,
+          'submittedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        final student = await studentRecord();
+        await ref.set({
+          'studentId': uid,
+          'studentName': student['name'],
+          'status': 'submitted',
+          'note': note.trim(),
+          'attachments': attachments,
+          'submittedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (_) {
+      // Do not leave files behind for a submission that was not saved.
+      await _uploader.deleteAll(uploaded);
+      rethrow;
+    }
+    if (existing != null) {
+      final keptPaths = keep.map((file) => file.path).toSet();
+      await _uploader.deleteAll(
+        existing.attachments.where((file) => !keptPaths.contains(file.path)),
+      );
     }
   }
 

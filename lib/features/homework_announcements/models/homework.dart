@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'attachment.dart';
+
 class Homework {
   final String? id;
   final String schoolId;
@@ -14,6 +16,9 @@ class Homework {
   final int submittedCount;
   final DateTime createdAt;
 
+  /// Reference files from the teacher (PDF / images).
+  final List<Attachment> attachments;
+
   const Homework({
     this.id,
     required this.schoolId,
@@ -27,6 +32,7 @@ class Homework {
     required this.totalStudents,
     required this.submittedCount,
     required this.createdAt,
+    this.attachments = const [],
   });
 
   /// Active until the end of the due date.
@@ -58,6 +64,7 @@ class Homework {
       totalStudents: (map['totalStudents'] as num?)?.toInt() ?? 0,
       submittedCount: (map['submittedCount'] as num?)?.toInt() ?? 0,
       createdAt: date(map['createdAt']),
+      attachments: Attachment.listFrom(map['attachments']),
     );
   }
 }

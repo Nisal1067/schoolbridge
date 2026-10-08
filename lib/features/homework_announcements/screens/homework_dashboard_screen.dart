@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/homework.dart';
 import '../models/submission.dart';
 import '../services/homework_announcement_service.dart';
+import '../widgets/attachment_widgets.dart';
 import '../widgets/task_widgets.dart';
 import '../../user_communication/teacher_chat_fab.dart';
 
@@ -486,6 +487,9 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              const FieldLabel('Attached files'),
+              AttachmentList(attachments: submission.attachments),
               const SizedBox(height: 16),
               const FieldLabel('Your feedback'),
               TextField(

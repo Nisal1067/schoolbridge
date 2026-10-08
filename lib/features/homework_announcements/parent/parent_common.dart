@@ -43,7 +43,7 @@ int daysUntilDue(Homework homework, {DateTime? now}) {
 /// Not handed in yet and due today or tomorrow.
 bool isDueSoon(StudentHomework item, {DateTime? now}) =>
     !item.isDone &&
-    item.homework.isActive &&
+    daysUntilDue(item.homework, now: now) >= 0 &&
     daysUntilDue(item.homework, now: now) <= 1;
 
 /// Short sentence for a homework tile, e.g. "Due tomorrow" or "2 days overdue".
