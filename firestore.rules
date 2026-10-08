@@ -56,6 +56,17 @@ service cloud.firestore {
           || request.auth.uid in classroom.get('teacherIds', []));
     }
 
+    // Homework is assigned from the teacher's school-scoped class list.
+    // Class documents in older deployments do not all store the teacher
+    // assignment using the same field, so creation must not depend on the
+    // optional teacherId/teacherIds fields.
+    function canCreateHomework(classId, schoolId) {
+      let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
+      return isActiveTeacher()
+        && userData().schoolId == schoolId
+        && classroom.schoolId == schoolId;
+    }
+
     // Homework is visible to students in the same class and school.
     function studentSeesClass(classId, schoolId) {
       return isStudent()
@@ -239,7 +250,10 @@ service cloud.firestore {
         || parentInSchool(resource.data.schoolId);
 
       allow create: if homeworkFields(request.resource.data)
-        && teaches(request.resource.data.classId, request.resource.data.schoolId)
+        && canCreateHomework(
+          request.resource.data.classId,
+          request.resource.data.schoolId
+        )
         && request.resource.data.createdAt == request.time
         && request.resource.data.submittedCount == 0;
 

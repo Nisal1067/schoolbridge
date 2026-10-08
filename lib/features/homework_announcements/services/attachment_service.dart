@@ -223,7 +223,17 @@ class FileStorageApi {
           )
           .timeout(const Duration(seconds: 90));
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw StorageFailure(response.statusCode);
+        String? message;
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic> && decoded['message'] is String) {
+            message = decoded['message'] as String;
+          }
+        } catch (_) {
+          // The status code still identifies the failure when the gateway
+          // returns a non-JSON response.
+        }
+        throw StorageFailure(response.statusCode, message);
       }
     } finally {
       if (_clientOverride == null) client.close();

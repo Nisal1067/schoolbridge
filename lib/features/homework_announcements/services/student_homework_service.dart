@@ -12,8 +12,23 @@ import '../models/submission.dart';
 import 'attachment_service.dart';
 
 /// Shows a service message (e.g. "Please sign in again.") or a fallback.
-String friendlyError(Object error, String fallback) =>
-    error is StateError ? error.message : fallback;
+String friendlyError(Object error, String fallback) {
+  if (error is StateError) return error.message;
+  if (error is FirebaseException) {
+    switch (error.code) {
+      case 'permission-denied':
+        return 'You do not have permission to save this homework.';
+      case 'unavailable':
+      case 'deadline-exceeded':
+        return 'The school database is unavailable. Check your connection and try again.';
+      case 'unauthenticated':
+        return 'Your session has expired. Please sign in again.';
+      default:
+        return error.message ?? fallback;
+    }
+  }
+  return fallback;
+}
 
 /// Firestore access for the student side of homework and announcements.
 ///

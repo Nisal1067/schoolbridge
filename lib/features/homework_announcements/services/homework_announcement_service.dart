@@ -59,7 +59,7 @@ class HomeworkAnnouncementService {
     List<PickedAttachment> files = const [],
   }) async {
     final user = await _attendance.profile();
-    final roster = await _attendance.studentsForClass(classroom);
+    final totalStudents = await _studentCount(classroom);
     // The id is needed first, because the files are stored under it.
     final ref = _firestore.collection('homework').doc();
     final uploaded = await _uploader.uploadAll(
@@ -80,7 +80,7 @@ class HomeworkAnnouncementService {
         'title': title.trim(),
         'description': description.trim(),
         'dueDate': Timestamp.fromDate(_dateOnly(dueDate)),
-        'totalStudents': roster.length,
+        'totalStudents': totalStudents,
         'submittedCount': 0,
         'attachments': [for (final file in uploaded) file.toMap()],
         'createdAt': FieldValue.serverTimestamp(),
@@ -91,6 +91,23 @@ class HomeworkAnnouncementService {
       await _uploader.deleteAll(uploaded);
       rethrow;
     }
+  }
+
+  Future<int> _studentCount(Map<String, dynamic> classroom) async {
+    try {
+      return (await _attendance.studentsForClass(classroom)).length;
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') rethrow;
+      // Some deployments do not yet allow teachers to read the roster. The
+      // homework document can still be created with the count stored on the
+      // class, if present.
+      return _classStudentCount(classroom);
+    }
+  }
+
+  int _classStudentCount(Map<String, dynamic> classroom) {
+    final count = classroom['studentCount'];
+    return count is num && count >= 0 ? count.toInt() : 0;
   }
 
   Future<void> updateHomework(
