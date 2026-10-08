@@ -408,6 +408,7 @@ class _RegistrationSuccessDialogState
 
   Widget _buildSingleUserContent() {
     final u = widget.singleUser!;
+    final isTeacher = u.role.toLowerCase() == 'teacher';
 
     return Container(
       width: double.infinity,
@@ -423,11 +424,14 @@ class _RegistrationSuccessDialogState
           Row(
             children: [
               CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFFDCEBFE),
+                radius: 20,
+                backgroundColor: isTeacher ? const Color(0xFFEFF6FF) : const Color(0xFFDCEBFE),
                 child: Text(
                   u.initials,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isTeacher ? const Color(0xFF1D4ED8) : const Color(0xFF2563EB),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -440,15 +444,46 @@ class _RegistrationSuccessDialogState
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                     ),
                     Text(
-                      '${u.role} ${u.gradeOrClass.isNotEmpty ? "• ${u.gradeOrClass}" : ""}',
+                      isTeacher
+                          ? 'Teacher ${u.gradeOrClass.isNotEmpty ? "• Class: ${u.gradeOrClass}" : ""}'
+                          : '${u.role} ${u.gradeOrClass.isNotEmpty ? "• ${u.gradeOrClass}" : ""}',
                       style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ],
                 ),
               ),
+              if (u.admissionNo.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Text(
+                    u.admissionNo,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1D4ED8),
+                    ),
+                  ),
+                ),
             ],
           ),
-          const Divider(height: 24),
+          const Divider(height: 22),
+          if (isTeacher && u.admissionNo.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.badge_outlined,
+              label: 'Teacher ID',
+              value: u.admissionNo,
+            ),
+          if (!isTeacher && u.admissionNo.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.badge_outlined,
+              label: u.role.toLowerCase() == 'admin' ? 'Admin ID' : 'Staff ID',
+              value: u.admissionNo,
+            ),
           _buildCredentialRow(
             icon: Icons.alternate_email_rounded,
             label: 'Login Email',
@@ -462,6 +497,41 @@ class _RegistrationSuccessDialogState
             obscure: !_showSinglePassword,
             onToggleObscure: () => setState(() => _showSinglePassword = !_showSinglePassword),
           ),
+          if (!isTeacher && u.gradeOrClass.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.apartment_rounded,
+              label: 'Department',
+              value: u.gradeOrClass,
+              allowCopy: false,
+            ),
+          if (isTeacher && u.gradeOrClass.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.meeting_room_outlined,
+              label: 'Class Teacher',
+              value: u.gradeOrClass,
+              allowCopy: false,
+            ),
+          if (isTeacher && u.subjects.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.menu_book_rounded,
+              label: 'Subjects',
+              value: u.subjectsFormatted,
+              allowCopy: false,
+            ),
+          if (isTeacher && u.qualification.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.school_outlined,
+              label: 'Qualification',
+              value: u.qualification,
+              allowCopy: false,
+            ),
+          if (u.nic.isNotEmpty)
+            _buildCredentialRow(
+              icon: Icons.credit_card_rounded,
+              label: 'NIC',
+              value: u.nic,
+              allowCopy: false,
+            ),
           _buildCredentialRow(
             icon: Icons.phone_rounded,
             label: 'Phone',

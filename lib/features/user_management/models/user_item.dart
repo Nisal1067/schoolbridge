@@ -17,6 +17,8 @@ class UserItem {
   final String admissionNo;
   final String nic;
   final String occupation;
+  final List<String> subjects;
+  final String qualification;
 
   const UserItem({
     required this.id,
@@ -35,6 +37,8 @@ class UserItem {
     this.admissionNo = '',
     this.nic = '',
     this.occupation = '',
+    this.subjects = const [],
+    this.qualification = '',
   });
 
   String get initials {
@@ -50,6 +54,8 @@ class UserItem {
     }
     return role;
   }
+
+  String get subjectsFormatted => subjects.join(', ');
 
   UserItem copyWith({
     String? id,
@@ -68,6 +74,8 @@ class UserItem {
     String? admissionNo,
     String? nic,
     String? occupation,
+    List<String>? subjects,
+    String? qualification,
   }) {
     return UserItem(
       id: id ?? this.id,
@@ -86,6 +94,8 @@ class UserItem {
       admissionNo: admissionNo ?? this.admissionNo,
       nic: nic ?? this.nic,
       occupation: occupation ?? this.occupation,
+      subjects: subjects ?? this.subjects,
+      qualification: qualification ?? this.qualification,
     );
   }
 
@@ -99,6 +109,7 @@ class UserItem {
       'role': cleanRole,
       'gradeOrClass': gradeOrClass,
       'class': gradeOrClass,
+      'classId': gradeOrClass,
       'schoolId': 'school01',
       'active': status.toLowerCase() == 'active',
       'status': status,
@@ -109,8 +120,13 @@ class UserItem {
       'dob': dob,
       'gender': gender,
       'admissionNo': admissionNo,
+      'employeeId': admissionNo,
       'nic': nic,
       'occupation': occupation,
+      'subjects': subjects,
+      'subject': subjectsFormatted,
+      'qualification': qualification,
+      'qualifications': qualification,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -153,6 +169,33 @@ class UserItem {
       }
     }
 
+    List<String> parsedSubjects = [];
+    if (map['subjects'] != null) {
+      if (map['subjects'] is List) {
+        parsedSubjects = (map['subjects'] as List).map((e) => e.toString()).toList();
+      } else if (map['subjects'] is String && (map['subjects'] as String).isNotEmpty) {
+        parsedSubjects = (map['subjects'] as String)
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    } else if (map['subject'] != null && map['subject'].toString().isNotEmpty) {
+      parsedSubjects = [map['subject'].toString()];
+    }
+
+    final parsedQualification = (map['qualification'] ??
+            map['qualifications'] ??
+            map['designation'] ??
+            '')
+        .toString();
+
+    final parsedAdmissionNo = (map['admissionNo'] ??
+            map['employeeId'] ??
+            map['indexNo'] ??
+            '')
+        .toString();
+
     return UserItem(
       id: id,
       name: map['name'] ?? map['fullName'] ?? 'User',
@@ -167,9 +210,11 @@ class UserItem {
       homePhone: (map['homePhone'] ?? map['landline'] ?? '')?.toString() ?? '',
       dob: (map['dob'] ?? map['dateOfBirth'] ?? '')?.toString() ?? '',
       gender: map['gender']?.toString() ?? '',
-      admissionNo: (map['admissionNo'] ?? map['indexNo'] ?? '')?.toString() ?? '',
+      admissionNo: parsedAdmissionNo,
       nic: map['nic']?.toString() ?? '',
       occupation: map['occupation']?.toString() ?? '',
+      subjects: parsedSubjects,
+      qualification: parsedQualification,
     );
   }
 }

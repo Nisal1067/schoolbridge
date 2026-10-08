@@ -387,18 +387,19 @@ class PdfGeneratorService {
     required String password,
   }) async {
     final pdf = pw.Document();
+    final isTeacher = user.role.toLowerCase() == 'teacher';
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.symmetric(horizontal: 36, vertical: 28),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 36, vertical: 24),
         build: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               // Header
               pw.Container(
-                padding: const pw.EdgeInsets.only(bottom: 10),
+                padding: const pw.EdgeInsets.only(bottom: 8),
                 decoration: const pw.BoxDecoration(
                   border: pw.Border(
                     bottom: pw.BorderSide(color: PdfColors.blue800, width: 2),
@@ -420,9 +421,11 @@ class PdfGeneratorService {
                         ),
                         pw.SizedBox(height: 2),
                         pw.Text(
-                          '${user.role} Registration & Account Credentials',
+                          isTeacher
+                              ? 'Official Teacher Appointment & Credential Slip'
+                              : '${user.role} Registration & Account Credentials',
                           style: pw.TextStyle(
-                            fontSize: 11,
+                            fontSize: 10.5,
                             color: PdfColors.grey700,
                             fontWeight: pw.FontWeight.bold,
                           ),
@@ -435,23 +438,23 @@ class PdfGeneratorService {
                         pw.Container(
                           padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: pw.BoxDecoration(
-                            color: PdfColors.blue50,
-                            border: pw.Border.all(color: PdfColors.blue400),
+                            color: isTeacher ? PdfColors.blue50 : PdfColors.teal50,
+                            border: pw.Border.all(color: isTeacher ? PdfColors.blue400 : PdfColors.teal400),
                             borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
                           ),
                           child: pw.Text(
-                            user.role.toUpperCase(),
+                            isTeacher ? 'FACULTY / TEACHER' : user.role.toUpperCase(),
                             style: pw.TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.blue900,
+                              color: isTeacher ? PdfColors.blue900 : PdfColors.teal900,
                             ),
                           ),
                         ),
                         pw.SizedBox(height: 3),
                         pw.Text(
-                          'Joined: ${user.joinedDate}',
-                          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+                          'Date: ${user.joinedDate}',
+                          style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey600),
                         ),
                       ],
                     ),
@@ -459,57 +462,169 @@ class PdfGeneratorService {
                 ),
               ),
 
-              pw.SizedBox(height: 14),
+              pw.SizedBox(height: 10),
 
-              _buildSectionCard(
-                title: 'ACCOUNT PROFILE & ACCESS CREDENTIALS',
-                children: [
-                  _buildInfoRow('Full Name:', user.name),
-                  _buildInfoRow('Assigned Role:', user.role, isHighlight: true),
-                  _buildInfoRow(
-                    user.role == 'Teacher' ? 'Class Teacher Of:' : 'Department:',
-                    user.gradeOrClass,
-                  ),
-                  _buildInfoRow('Mobile Phone:', user.phone),
-                  if (user.homePhone.isNotEmpty)
-                    _buildInfoRow('Home Phone:', user.homePhone),
-                  if (user.address.isNotEmpty)
-                    _buildInfoRow('Address:', user.address),
-                  _buildInfoRow('Account Status:', user.status),
-                  _buildCredentialBox(
-                    roleLabel: user.role.toUpperCase(),
-                    email: user.email,
-                    password: password,
-                  ),
-                ],
-              ),
+              if (isTeacher) ...[
+                // Teacher Profile Card
+                _buildSectionCard(
+                  title: '1. TEACHER PERSONAL & IDENTIFICATION PROFILE',
+                  accentColor: PdfColors.blue800,
+                  children: [
+                    _buildInfoRow('Full Name:', user.name),
+                    _buildInfoRow(
+                      'Teacher / Employee ID:',
+                      user.admissionNo.isNotEmpty ? user.admissionNo : 'TCH-${DateTime.now().year}-ASSIGNED',
+                      isHighlight: true,
+                    ),
+                    if (user.nic.isNotEmpty) _buildInfoRow('National ID (NIC):', user.nic),
+                    if (user.gender.isNotEmpty) _buildInfoRow('Gender:', user.gender),
+                    if (user.dob.isNotEmpty) _buildInfoRow('Date of Birth:', user.dob),
+                  ],
+                ),
+
+                // Teaching & Academic Responsibilities Card
+                _buildSectionCard(
+                  title: '2. ACADEMIC & TEACHING RESPONSIBILITIES',
+                  accentColor: PdfColors.blue800,
+                  children: [
+                    _buildInfoRow(
+                      'Class Teacher Of:',
+                      user.gradeOrClass.isNotEmpty
+                          ? user.gradeOrClass
+                          : 'General Faculty (Not assigned to a single class)',
+                      isHighlight: user.gradeOrClass.isNotEmpty,
+                    ),
+                    _buildInfoRow(
+                      'Assigned Subjects:',
+                      user.subjects.isNotEmpty
+                          ? user.subjectsFormatted
+                          : (user.gradeOrClass.isNotEmpty ? user.gradeOrClass : 'General Curriculum'),
+                      isHighlight: true,
+                    ),
+                    if (user.qualification.isNotEmpty)
+                      _buildInfoRow('Educational Qualification:', user.qualification),
+                  ],
+                ),
+
+                // Contact Details Card
+                _buildSectionCard(
+                  title: '3. CONTACT & RESIDENTIAL INFORMATION',
+                  accentColor: PdfColors.blue800,
+                  children: [
+                    _buildInfoRow('Primary Mobile Phone:', user.phone),
+                    if (user.homePhone.isNotEmpty)
+                      _buildInfoRow('Home / Landline Phone:', user.homePhone),
+                    if (user.address.isNotEmpty)
+                      _buildInfoRow('Residential Address:', user.address),
+                  ],
+                ),
+
+                // Login Credentials Card
+                _buildSectionCard(
+                  title: '4. SYSTEM ACCESS CREDENTIALS (CONFIDENTIAL)',
+                  accentColor: PdfColors.red800,
+                  children: [
+                    pw.Text(
+                      'Use these credentials to log in to the SchoolBridge Staff Portal & Mobile App:',
+                      style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700),
+                    ),
+                    _buildCredentialBox(
+                      roleLabel: 'TEACHER',
+                      email: user.email,
+                      password: password,
+                      bgColor: PdfColors.blue50,
+                      borderColor: PdfColors.blue300,
+                      textColor: PdfColors.blue900,
+                    ),
+                  ],
+                ),
+              ] else ...[
+                // Administrator / Staff Profile Card
+                _buildSectionCard(
+                  title: '1. ADMINISTRATOR PROFILE & IDENTIFICATION',
+                  accentColor: PdfColors.indigo800,
+                  children: [
+                    _buildInfoRow('Full Name:', user.name),
+                    _buildInfoRow(
+                      'Admin / Staff ID:',
+                      user.admissionNo.isNotEmpty
+                          ? user.admissionNo
+                          : 'ADM-${DateTime.now().year}-ASSIGNED',
+                      isHighlight: true,
+                    ),
+                    if (user.nic.isNotEmpty)
+                      _buildInfoRow('National ID (NIC):', user.nic),
+                    _buildInfoRow(
+                      'Department / Role:',
+                      user.gradeOrClass.isNotEmpty
+                          ? user.gradeOrClass
+                          : 'Administration',
+                      isHighlight: true,
+                    ),
+                    _buildInfoRow('Account Status:', user.status),
+                  ],
+                ),
+
+                // Contact & Office Information Card
+                _buildSectionCard(
+                  title: '2. CONTACT INFORMATION',
+                  accentColor: PdfColors.indigo800,
+                  children: [
+                    _buildInfoRow('Primary Mobile Phone:', user.phone),
+                    if (user.homePhone.isNotEmpty)
+                      _buildInfoRow('Office / Landline Phone:', user.homePhone),
+                    if (user.address.isNotEmpty)
+                      _buildInfoRow('Office / Residential Address:', user.address),
+                  ],
+                ),
+
+                // Login Credentials Card
+                _buildSectionCard(
+                  title: '3. SYSTEM ACCESS CREDENTIALS (CONFIDENTIAL)',
+                  accentColor: PdfColors.red800,
+                  children: [
+                    pw.Text(
+                      'Use these credentials to log in to the SchoolBridge Administrator Portal:',
+                      style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700),
+                    ),
+                    _buildCredentialBox(
+                      roleLabel: user.role.toUpperCase(),
+                      email: user.email,
+                      password: password,
+                      bgColor: PdfColors.indigo50,
+                      borderColor: PdfColors.indigo300,
+                      textColor: PdfColors.indigo900,
+                    ),
+                  ],
+                ),
+              ],
 
               pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                margin: const pw.EdgeInsets.only(bottom: 20),
+                padding: const pw.EdgeInsets.all(8),
+                margin: const pw.EdgeInsets.symmetric(vertical: 4),
                 decoration: pw.BoxDecoration(
                   color: PdfColors.blue50,
                   border: pw.Border.all(color: PdfColors.blue300),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'Access Instructions:',
+                      'System Access Instructions:',
                       style: pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
-                        fontSize: 10,
+                        fontSize: 9,
                         color: PdfColors.blue900,
                       ),
                     ),
-                    pw.SizedBox(height: 4),
+                    pw.SizedBox(height: 3),
                     pw.Text(
-                      '1. Open the SchoolBridge application or portal.\n'
+                      '1. Open the SchoolBridge application or staff web portal.\n'
                       '2. Select your account role (${user.role}).\n'
-                      '3. Enter your Sign-in Email and the Generated Temporary Password shown above.\n'
+                      '3. Enter your Sign-in Email and the Generated Temporary Password printed above.\n'
                       '4. Change your password after your first successful sign-in.',
-                      style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                      style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800),
                     ),
                   ],
                 ),
@@ -531,10 +646,10 @@ class PdfGeneratorService {
                           ),
                         ),
                       ),
-                      pw.SizedBox(height: 4),
+                      pw.SizedBox(height: 3),
                       pw.Text(
-                        'Authorized Administrator',
-                        style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                        'Principal / Authorized Administrator',
+                        style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey800),
                       ),
                     ],
                   ),
@@ -549,21 +664,21 @@ class PdfGeneratorService {
                           ),
                         ),
                       ),
-                      pw.SizedBox(height: 4),
+                      pw.SizedBox(height: 3),
                       pw.Text(
-                        'Employee / User Signature',
-                        style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+                        isTeacher ? 'Appointed Teacher Signature' : 'Employee / User Signature',
+                        style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey800),
                       ),
                     ],
                   ),
                 ],
               ),
 
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 8),
               pw.Center(
                 child: pw.Text(
-                  'SchoolBridge Integrated School Management System - Confidential',
-                  style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
+                  'SchoolBridge Integrated School Management System - Confidential Official Document',
+                  style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey500),
                 ),
               ),
             ],
@@ -599,8 +714,13 @@ class PdfGeneratorService {
     required String password,
   }) async {
     final bytes = await generateSingleUserPdf(user: user, password: password);
+    final cleanId = user.admissionNo.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
     final cleanName = user.name.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
-    final filename = 'Credential_Slip_${user.role}_$cleanName.pdf';
+    final filename = user.role.toLowerCase() == 'teacher'
+        ? 'Teacher_Appointment_${cleanId.isNotEmpty ? cleanId : cleanName}.pdf'
+        : (user.role.toLowerCase() == 'admin'
+            ? 'Admin_Credentials_${cleanId.isNotEmpty ? cleanId : cleanName}.pdf'
+            : 'Credential_Slip_${user.role}_$cleanName.pdf');
     await downloadPdf(bytes, filename);
   }
 

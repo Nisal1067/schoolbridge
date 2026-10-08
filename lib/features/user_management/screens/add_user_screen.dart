@@ -36,6 +36,83 @@ class _AddUserScreenState extends State<AddUserScreen> {
   String _selectedGender = 'Male';
   bool _obscurePassword = true;
 
+  // Student class & section state (Select Grade + Type Section)
+  String _studentSelectedGrade = 'Grade 10';
+  final _studentSectionController = TextEditingController(text: 'A');
+
+  // Teacher class & section state (Select Grade + Type Section)
+  String _teacherSelectedGrade = 'None';
+  final _teacherSectionController = TextEditingController();
+
+  // Scroll controller for subjects
+  final ScrollController _subjectScrollController = ScrollController();
+
+  final List<String> _schoolGrades = [
+    'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
+    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
+    'Grade 11', 'Grade 12', 'Grade 13',
+  ];
+
+  final List<String> _teacherGradeOptions = [
+    'None',
+    'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
+    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
+    'Grade 11', 'Grade 12', 'Grade 13',
+  ];
+
+  final List<String> _quickSections = ['A', 'B', 'C', 'D', 'E'];
+  final List<String> _advancedSections = ['A', 'B', 'C', 'Bio', 'Maths', 'Commerce', 'Arts', 'Tech'];
+
+  // Teacher-specific controllers & state
+  final _teacherNicController = TextEditingController();
+  final _teacherQualificationController = TextEditingController();
+  final _teacherCustomSubjectController = TextEditingController();
+
+  // Admin-specific controllers
+  final _adminNicController = TextEditingController();
+  final List<String> _selectedSubjects = [];
+  final List<String> _commonSubjects = [
+    'Mathematics',
+    'Science',
+    'English Language',
+    'English Literature',
+    'Sinhala Language & Lit.',
+    'Tamil Language & Lit.',
+    'History',
+    'ICT',
+    'Commerce',
+    'Accounting',
+    'Economics',
+    'Business Studies',
+    'Buddhism',
+    'Christianity',
+    'Catholicism',
+    'Hinduism',
+    'Islam',
+    'Art',
+    'Western Music',
+    'Eastern Music',
+    'Dancing',
+    'Drama & Theatre',
+    'Geography',
+    'Civic Education',
+    'Health & Physical Education',
+    'Agriculture',
+    'Home Science',
+    'Design & Technology',
+    'Combined Mathematics',
+    'Biology',
+    'Physics',
+    'Chemistry',
+    'Political Science',
+    'Logic & Scientific Method',
+    'Media Studies',
+    'French',
+    'Japanese',
+    'German',
+    'Chinese',
+  ];
+
   // Parent fields (Step 2)
   final _parentNameController = TextEditingController();
   final _parentEmailController = TextEditingController();
@@ -51,11 +128,41 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final List<String> _genders = ['Male', 'Female', 'Other'];
   final List<String> _relationships = ['Father', 'Mother', 'Guardian', 'Other'];
 
+  void _syncStudentClass() {
+    final sec = _studentSectionController.text.trim().toUpperCase();
+    _gradeController.text = sec.isNotEmpty ? '$_studentSelectedGrade-$sec' : _studentSelectedGrade;
+  }
+
+  void _syncTeacherClass() {
+    if (_teacherSelectedGrade == 'None' || _teacherSelectedGrade == 'None (Subject Teacher Only)') {
+      _gradeController.text = '';
+    } else {
+      final sec = _teacherSectionController.text.trim().toUpperCase();
+      _gradeController.text = sec.isNotEmpty ? '$_teacherSelectedGrade-$sec' : _teacherSelectedGrade;
+    }
+  }
+
+  void _addCustomSubject() {
+    final text = _teacherCustomSubjectController.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        if (!_commonSubjects.contains(text)) {
+          _commonSubjects.insert(0, text);
+        }
+        if (!_selectedSubjects.contains(text)) {
+          _selectedSubjects.add(text);
+        }
+        _teacherCustomSubjectController.clear();
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _passwordController.text = UserManagementService.generateSecurePassword();
     _parentPasswordController.text = UserManagementService.generateSecurePassword();
+    _syncStudentClass();
   }
 
   @override
@@ -69,6 +176,15 @@ class _AddUserScreenState extends State<AddUserScreen> {
     _dobController.dispose();
     _gradeController.dispose();
     _passwordController.dispose();
+
+    _studentSectionController.dispose();
+    _teacherSectionController.dispose();
+    _subjectScrollController.dispose();
+
+    _teacherNicController.dispose();
+    _teacherQualificationController.dispose();
+    _teacherCustomSubjectController.dispose();
+    _adminNicController.dispose();
 
     _parentNameController.dispose();
     _parentEmailController.dispose();
@@ -86,6 +202,33 @@ class _AddUserScreenState extends State<AddUserScreen> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[now.month - 1]} ${now.day}, ${now.year}';
+  }
+
+  Future<void> _selectTeacherDateOfBirth(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 20)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2563EB),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1E293B),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _dobController.text =
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
   }
 
   Future<void> _selectDateOfBirth(BuildContext context) async {
@@ -452,6 +595,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                     setState(() {
                       _selectedRole = role;
                       _currentStep = 0;
+                      if (role == 'Admin' && _gradeController.text.isEmpty) {
+                        _gradeController.text = 'Administration';
+                      }
                     });
                   },
                   child: AnimatedContainer(
@@ -501,14 +647,38 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Future<void> _handleCreateSingleUser() async {
     if (!_singleFormKey.currentState!.validate()) return;
 
+    final isTeacher = _selectedRole == 'Teacher';
+    final isAdmin = _selectedRole == 'Admin';
+
+    if (isTeacher) {
+      _syncTeacherClass();
+    }
+
+    if (isTeacher && _selectedSubjects.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select or add at least one subject for the teacher.'),
+          backgroundColor: Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     final password = _passwordController.text.trim().isNotEmpty
         ? _passwordController.text.trim()
         : UserManagementService.generateSecurePassword();
 
+    final rawAssignedClass = _gradeController.text.trim();
+    final cleanAssignedClass = (rawAssignedClass == 'None' ||
+            rawAssignedClass == 'None (Subject Teacher Only)')
+        ? ''
+        : rawAssignedClass;
+
     final newUser = UserItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: '',
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       phone: _phoneController.text.trim().isEmpty
@@ -516,10 +686,20 @@ class _AddUserScreenState extends State<AddUserScreen> {
           : _phoneController.text.trim(),
       address: _addressController.text.trim(),
       homePhone: _homePhoneController.text.trim(),
+      dob: _dobController.text.trim(),
+      gender: _selectedGender,
+      admissionNo: '', // Auto-assigned by system as TCH-YYYY-XXXX or ADM-YYYY-XXXX
+      nic: isTeacher
+          ? _teacherNicController.text.trim()
+          : (isAdmin ? _adminNicController.text.trim() : ''),
       role: _selectedRole,
-      gradeOrClass: _gradeController.text.trim().isEmpty
-          ? (_selectedRole == 'Teacher' ? '' : 'Administration')
-          : _gradeController.text.trim(),
+      gradeOrClass: isTeacher
+          ? cleanAssignedClass
+          : (_gradeController.text.trim().isEmpty
+              ? 'Administration'
+              : _gradeController.text.trim()),
+      subjects: isTeacher ? List<String>.from(_selectedSubjects) : const [],
+      qualification: isTeacher ? _teacherQualificationController.text.trim() : '',
       status: 'Active',
       joinedDate: _currentJoinedDate(),
       parentIds: const [],
@@ -556,6 +736,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
   // Handle student and parent linked creation
   Future<void> _handleRegisterStudentAndParent() async {
+    _syncStudentClass();
     if (!_parentFormKey.currentState!.validate()) return;
 
     final studentEmail = _emailController.text.trim().toLowerCase();
@@ -689,33 +870,164 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Admission No (Auto-Generated) & Class/Grade in a Row
-          Row(
-            children: [
-              Expanded(
-                child: Column(
+          // Admission No (Auto-Generated)
+          _buildFieldLabel('Admission / Index No'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Auto-generated by system upon registration',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+                Text(
+                  'STU-YYYY-XXXX',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Class Assignment: Select Grade & Type Section (A, B...)
+          _buildFieldLabel('Class / Grade (Select Grade & Type Section A, B...)'),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x04000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel('Admission / Index No'),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: const Row(
+                    // Grade Selector
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 18),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Auto-generated by system',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF64748B),
+                          const Text(
+                            'Select Grade',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _studentSelectedGrade,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF2563EB)),
+                                items: _schoolGrades.map((g) {
+                                  return DropdownMenuItem(
+                                    value: g,
+                                    child: Text(
+                                      g,
+                                      style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _studentSelectedGrade = val;
+                                      _syncStudentClass();
+                                    });
+                                  }
+                                },
                               ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Section Type Input
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Type Section (A, B...)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: TextFormField(
+                              controller: _studentSectionController,
+                              textCapitalization: TextCapitalization.characters,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'e.g. A, B',
+                                hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                isDense: true,
+                              ),
+                              onChanged: (_) {
+                                setState(() {
+                                  _syncStudentClass();
+                                });
+                              },
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Enter section'
+                                  : null,
                             ),
                           ),
                         ],
@@ -723,25 +1035,82 @@ class _AddUserScreenState extends State<AddUserScreen> {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 10),
+                // Quick Section Chips & Live Preview
+                Row(
                   children: [
-                    _buildFieldLabel('Class / Grade'),
-                    _buildTextField(
-                      controller: _gradeController,
-                      hintText: 'e.g. 10-A',
-                      prefixIcon: const Icon(Icons.school_outlined, color: Color(0xFF94A3B8), size: 20),
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Please enter class (e.g. 10-A)'
-                          : null,
+                    const Text(
+                      'Quick:',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _quickSections.map((sec) {
+                            final isCur = _studentSectionController.text.trim().toUpperCase() == sec;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _studentSectionController.text = sec;
+                                    _syncStudentClass();
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isCur ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isCur ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    sec,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: isCur ? Colors.white : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.school_rounded, size: 14, color: Color(0xFF2563EB)),
+                          const SizedBox(width: 6),
+                          Text(
+                            _gradeController.text.isNotEmpty ? _gradeController.text : '$_studentSelectedGrade-A',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1D4ED8),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -1116,79 +1485,1048 @@ class _AddUserScreenState extends State<AddUserScreen> {
     );
   }
 
-  // Standard form for other roles (Teacher or Admin)
-  Widget _buildStandardForm() {
+  Widget _buildSectionHeader({required IconData icon, required String title}) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14.5,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Dedicated real-world Teacher Registration Form
+  Widget _buildTeacherForm() {
     return Form(
       key: _singleFormKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildRoleSelector(),
+          const SizedBox(height: 18),
+
+          // Header Banner
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Faculty & Teacher Registration',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Assign class teacher responsibility, teaching subjects, and generate official appointment slip with credentials.',
+                        style: TextStyle(fontSize: 11.5, color: Color(0xFF3B82F6)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
 
-          _buildFieldLabel('Full Name'),
+          // --- 1. Teacher Identification ---
+          _buildSectionHeader(
+            icon: Icons.badge_outlined,
+            title: '1. Teacher Identity & Personal Profile',
+          ),
+          const SizedBox(height: 12),
+
+          // Full Name
+          _buildFieldLabel('Teacher Full Name'),
           _buildTextField(
             controller: _nameController,
-            hintText: 'Enter full name',
+            hintText: 'e.g. K.A. Sunimal Fernando',
             prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF94A3B8), size: 20),
-            validator: (v) => (v == null || v.trim().isEmpty)
-                ? 'Please enter full name'
-                : null,
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter teacher full name' : null,
+          ),
+          const SizedBox(height: 14),
+
+          // Teacher ID Badge (Auto Generated)
+          _buildFieldLabel('Teacher / Employee ID'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B), size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Auto-Generated: TCH-${DateTime.now().year}-XXXX',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const Text(
+                        'Unique sequence will be assigned by system upon registration',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDBEAFE),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'AUTO',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E40AF),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // NIC
+          _buildFieldLabel('National Identity Card (NIC)'),
+          _buildTextField(
+            controller: _teacherNicController,
+            hintText: 'e.g. 198512345678 or 851234567V',
+            prefixIcon: const Icon(Icons.credit_card_outlined, color: Color(0xFF94A3B8), size: 20),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter NIC number' : null,
+          ),
+          const SizedBox(height: 14),
+
+          // Gender & Date of Birth
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFieldLabel('Gender'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedGender,
+                          isExpanded: true,
+                          items: _genders.map((g) {
+                            return DropdownMenuItem(value: g, child: Text(g, style: const TextStyle(fontSize: 13.5)));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedGender = val);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFieldLabel('Date of Birth', isOptional: true),
+                    _buildTextField(
+                      controller: _dobController,
+                      hintText: 'YYYY-MM-DD',
+                      readOnly: true,
+                      onTap: () => _selectTeacherDateOfBirth(context),
+                      prefixIcon: const Icon(Icons.calendar_today_outlined, color: Color(0xFF94A3B8), size: 18),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // --- 2. Academic Responsibilities & Subjects ---
+          _buildSectionHeader(
+            icon: Icons.menu_book_rounded,
+            title: '2. Academic Responsibilities & Subjects',
+          ),
+          const SizedBox(height: 12),
+
+          // Class Teacher Of (Select Grade & Type Section A, B...)
+          _buildFieldLabel('Class Teacher Of (Select Grade & Type Section A, B...)', isOptional: true),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x04000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Grade Selector Dropdown
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Select Grade',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _teacherSelectedGrade,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF2563EB)),
+                                items: _teacherGradeOptions.map((g) {
+                                  final label = g == 'None' ? 'None (Subject Teacher)' : g;
+                                  return DropdownMenuItem(
+                                    value: g,
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: g == 'None' ? FontWeight.normal : FontWeight.w600,
+                                        color: g == 'None' ? const Color(0xFF64748B) : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _teacherSelectedGrade = val;
+                                      if (val != 'None' && _teacherSectionController.text.isEmpty) {
+                                        _teacherSectionController.text = 'A';
+                                      }
+                                      _syncTeacherClass();
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Section Type Input
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Type Section (A, B...)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _teacherSelectedGrade == 'None'
+                                  ? const Color(0xFFF1F5F9)
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: TextFormField(
+                              controller: _teacherSectionController,
+                              enabled: _teacherSelectedGrade != 'None',
+                              textCapitalization: TextCapitalization.characters,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: _teacherSelectedGrade == 'None' ? 'N/A' : 'e.g. A, B',
+                                hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                isDense: true,
+                              ),
+                              onChanged: (_) {
+                                setState(() {
+                                  _syncTeacherClass();
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (_teacherSelectedGrade != 'None') ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text(
+                        'Quick:',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _advancedSections.map((sec) {
+                              final isCur = _teacherSectionController.text.trim().toUpperCase() == sec;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _teacherSectionController.text = sec;
+                                      _syncTeacherClass();
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isCur ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isCur ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      sec,
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: isCur ? Colors.white : const Color(0xFF475569),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 10),
+                // Live preview badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _teacherSelectedGrade == 'None'
+                        ? const Color(0xFFF1F5F9)
+                        : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _teacherSelectedGrade == 'None'
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFFBFDBFE),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _teacherSelectedGrade == 'None'
+                            ? Icons.info_outline_rounded
+                            : Icons.check_circle_rounded,
+                        size: 14,
+                        color: _teacherSelectedGrade == 'None'
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF2563EB),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _teacherSelectedGrade == 'None'
+                            ? 'Role: Subject Teacher (No classroom assigned)'
+                            : 'Class Teacher of: ${_gradeController.text}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _teacherSelectedGrade == 'None'
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF1D4ED8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
 
-          _buildFieldLabel('Email'),
-          _buildTextField(
-            controller: _emailController,
-            hintText: 'Enter email address',
-            keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF94A3B8), size: 20),
-            validator: (v) => (v == null || !v.contains('@'))
-                ? 'Please enter a valid email'
-                : null,
+          // Teaching Subjects Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildFieldLabel('Teaching Subjects (Scroll to Select)'),
+              if (_selectedSubjects.isNotEmpty)
+                Text(
+                  '${_selectedSubjects.length} selected',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 18),
 
-          _buildFieldLabel('Phone'),
-          _buildTextField(
-            controller: _phoneController,
-            hintText: 'Enter phone number',
-            keyboardType: TextInputType.phone,
-            prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF94A3B8), size: 20),
+          // Scrollable Container for Subjects
+          Container(
+            height: 185,
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x04000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Scrollbar(
+              controller: _subjectScrollController,
+              thumbVisibility: true,
+              radius: const Radius.circular(8),
+              thickness: 5,
+              child: SingleChildScrollView(
+                controller: _subjectScrollController,
+                padding: const EdgeInsets.only(right: 10),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _commonSubjects.map((subject) {
+                    final isSelected = _selectedSubjects.contains(subject);
+                    return FilterChip(
+                      selected: isSelected,
+                      label: Text(subject),
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
+                      ),
+                      selectedColor: const Color(0xFFDBEAFE),
+                      backgroundColor: const Color(0xFFF8FAFC),
+                      checkmarkColor: const Color(0xFF1D4ED8),
+                      side: BorderSide(
+                        color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedSubjects.add(subject);
+                          } else {
+                            _selectedSubjects.remove(subject);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
 
-          _buildFieldLabel('Home Address', isOptional: true),
-          _buildTextField(
-            controller: _addressController,
-            hintText: 'Enter address',
-            prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF94A3B8), size: 20),
+          // Type other / additional subject input (මීට අමතර විෂයක් නම් මෙහි type කරන්න)
+          _buildFieldLabel('Type Other / Additional Subject (මීට අමතර විෂයක් නම්)', isOptional: true),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextFormField(
+                    controller: _teacherCustomSubjectController,
+                    decoration: const InputDecoration(
+                      hintText: 'Type any other subject name (e.g. Robotics, French)',
+                      hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                      prefixIcon: Icon(Icons.edit_note_rounded, color: Color(0xFF2563EB), size: 22),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    ),
+                    onFieldSubmitted: (_) => _addCustomSubject(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _addCustomSubject,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Add'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 18),
 
-          _buildFieldLabel(
-            _selectedRole == 'Teacher'
-                ? 'Class Teacher Of (e.g. 10-A)'
-                : 'Role / Department',
-          ),
+          // Selected Subjects Display
+          if (_selectedSubjects.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Assigned Subjects (${_selectedSubjects.length}):',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _selectedSubjects.clear()),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(50, 20),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('Clear All', style: TextStyle(fontSize: 11, color: Color(0xFFEF4444))),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _selectedSubjects.map((s) {
+                      return Chip(
+                        label: Text(s, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E3A8A))),
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        deleteIcon: const Icon(Icons.close_rounded, size: 14, color: Color(0xFF2563EB)),
+                        onDeleted: () => setState(() => _selectedSubjects.remove(s)),
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+
+          // Educational Qualifications
+          _buildFieldLabel('Educational Qualifications / Designation', isOptional: true),
           _buildTextField(
-            controller: _gradeController,
-            hintText: _selectedRole == 'Teacher'
-                ? 'Enter class name (Leave empty if none)'
-                : 'Enter role / department',
+            controller: _teacherQualificationController,
+            hintText: 'e.g. B.Sc. in Mathematics, NDT, Dip. in Education',
             prefixIcon: const Icon(Icons.school_outlined, color: Color(0xFF94A3B8), size: 20),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              'B.Sc. Degree',
+              'B.Ed. Degree',
+              'NDT (Teaching Dip.)',
+              'PGDE',
+              'M.Ed. Degree',
+            ].map((q) {
+              return ActionChip(
+                label: Text(q, style: const TextStyle(fontSize: 11, color: Color(0xFF334155))),
+                backgroundColor: const Color(0xFFF1F5F9),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: () {
+                  setState(() {
+                    if (_teacherQualificationController.text.isEmpty) {
+                      _teacherQualificationController.text = q;
+                    } else if (!_teacherQualificationController.text.contains(q)) {
+                      _teacherQualificationController.text += ', $q';
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 22),
 
-          // System Auto-Generated Password for Teacher / Admin
+          // --- 3. Contact Information ---
+          _buildSectionHeader(
+            icon: Icons.contact_phone_outlined,
+            title: '3. Contact Information & Sign-in Email',
+          ),
+          const SizedBox(height: 12),
+
+          // Sign-in Email
+          _buildFieldLabel('Teacher Sign-in Email (Portal Account)'),
+          _buildTextField(
+            controller: _emailController,
+            hintText: 'e.g. sunimal.fernando@schoolbridge.lk',
+            keyboardType: TextInputType.emailAddress,
+            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF94A3B8), size: 20),
+            validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid email address' : null,
+          ),
+          const SizedBox(height: 14),
+
+          // Mobile & Home Phone
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFieldLabel('Primary Mobile Phone'),
+                    _buildTextField(
+                      controller: _phoneController,
+                      hintText: 'e.g. 077 123 4567',
+                      keyboardType: TextInputType.phone,
+                      prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF94A3B8), size: 20),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter mobile phone' : null,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFieldLabel('Home Phone', isOptional: true),
+                    _buildTextField(
+                      controller: _homePhoneController,
+                      hintText: 'e.g. 011 234 5678',
+                      keyboardType: TextInputType.phone,
+                      prefixIcon: const Icon(Icons.phone_in_talk_outlined, color: Color(0xFF94A3B8), size: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Address
+          _buildFieldLabel('Residential Address', isOptional: true),
+          _buildTextField(
+            controller: _addressController,
+            hintText: 'e.g. No. 45, Temple Road, Colombo',
+            prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF94A3B8), size: 20),
+          ),
+          const SizedBox(height: 22),
+
+          // --- 4. Credentials & Password ---
+          _buildSectionHeader(
+            icon: Icons.vpn_key_outlined,
+            title: '4. System Credentials & Auto-Generated Password',
+          ),
+          const SizedBox(height: 12),
+
           _buildAutoPasswordField(
             controller: _passwordController,
-            label: 'Temporary Password',
+            label: 'Temporary Sign-in Password',
             obscure: _obscurePassword,
             onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
             onRegenerate: () => setState(() {
               _passwordController.text = UserManagementService.generateSecurePassword();
             }),
+          ),
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.print_outlined, color: Color(0xFF16A34A), size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'An official Teacher Appointment & Credential Slip PDF containing the generated password and sign-in details will be ready to download upon registration.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF166534), height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // Dedicated, streamlined Admin Registration Form
+  Widget _buildAdminForm() {
+    final currentYear = DateTime.now().year;
+
+    return Form(
+      key: _singleFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRoleSelector(),
+          const SizedBox(height: 18),
+
+          // Header Banner
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Administrator & Staff Registration',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Register administrative personnel with auto-generated Staff ID and system access credentials slip.',
+                        style: TextStyle(fontSize: 11.5, color: Color(0xFF3B82F6)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // --- 1. Administrator Profile ---
+          _buildSectionHeader(
+            icon: Icons.badge_outlined,
+            title: '1. Administrator Profile & Department',
+          ),
+          const SizedBox(height: 12),
+
+          // Full Name
+          _buildFieldLabel('Administrator Full Name'),
+          _buildTextField(
+            controller: _nameController,
+            hintText: 'e.g. Dr. Mahinda Rajapaksha / A.B. Perera',
+            prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF94A3B8), size: 20),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter administrator full name' : null,
+          ),
+          const SizedBox(height: 14),
+
+          // Staff ID Badge (Auto Generated ADM-YYYY-XXXX)
+          _buildFieldLabel('Staff / Administrator ID'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B), size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Auto-Generated: ADM-$currentYear-XXXX',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const Text(
+                        'Unique sequence will be assigned by system upon registration',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDBEAFE),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'AUTO',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E40AF),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // National ID (NIC)
+          _buildFieldLabel('National Identity Card (NIC)', isOptional: true),
+          _buildTextField(
+            controller: _adminNicController,
+            hintText: 'e.g. 197812345678 / 781234567V',
+            prefixIcon: const Icon(Icons.credit_card_outlined, color: Color(0xFF94A3B8), size: 20),
+          ),
+          const SizedBox(height: 14),
+
+          // Role / Department
+          _buildFieldLabel('Department / Administrative Role'),
+          _buildTextField(
+            controller: _gradeController,
+            hintText: 'e.g. Administration, Principal, IT Office',
+            prefixIcon: const Icon(Icons.apartment_rounded, color: Color(0xFF94A3B8), size: 20),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              'Administration',
+              'Principal',
+              'Vice Principal',
+              'IT Office',
+              'Finance & Bursar',
+              'Exam Branch',
+              'Student Affairs',
+            ].map((dept) {
+              return ActionChip(
+                label: Text(dept, style: const TextStyle(fontSize: 11.5, color: Color(0xFF334155))),
+                backgroundColor: const Color(0xFFF1F5F9),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: () {
+                  setState(() {
+                    _gradeController.text = dept;
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 22),
+
+          // --- 2. Contact Information ---
+          _buildSectionHeader(
+            icon: Icons.contact_phone_outlined,
+            title: '2. Contact Information & Sign-in Email',
+          ),
+          const SizedBox(height: 12),
+
+          // Sign-in Email
+          _buildFieldLabel('Admin Sign-in Email (Portal Account)'),
+          _buildTextField(
+            controller: _emailController,
+            hintText: 'e.g. admin@schoolbridge.lk',
+            keyboardType: TextInputType.emailAddress,
+            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF94A3B8), size: 20),
+            validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid email address' : null,
+          ),
+          const SizedBox(height: 14),
+
+          // Phone Numbers
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFieldLabel('Primary Mobile Phone'),
+                    _buildTextField(
+                      controller: _phoneController,
+                      hintText: 'e.g. 077 123 4567',
+                      keyboardType: TextInputType.phone,
+                      prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF94A3B8), size: 20),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter mobile phone' : null,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFieldLabel('Office / Landline Phone', isOptional: true),
+                    _buildTextField(
+                      controller: _homePhoneController,
+                      hintText: 'e.g. 011 234 5678',
+                      keyboardType: TextInputType.phone,
+                      prefixIcon: const Icon(Icons.phone_in_talk_outlined, color: Color(0xFF94A3B8), size: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Address
+          _buildFieldLabel('Office / Residential Address', isOptional: true),
+          _buildTextField(
+            controller: _addressController,
+            hintText: 'e.g. Administrative Block, School Premises',
+            prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF94A3B8), size: 20),
+          ),
+          const SizedBox(height: 22),
+
+          // --- 3. System Access Credentials ---
+          _buildSectionHeader(
+            icon: Icons.vpn_key_outlined,
+            title: '3. System Credentials & Auto-Generated Password',
+          ),
+          const SizedBox(height: 12),
+
+          _buildAutoPasswordField(
+            controller: _passwordController,
+            label: 'Temporary Sign-in Password',
+            obscure: _obscurePassword,
+            onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+            onRegenerate: () => setState(() {
+              _passwordController.text = UserManagementService.generateSecurePassword();
+            }),
+          ),
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.print_outlined, color: Color(0xFF16A34A), size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'An official Administrator Credential Slip PDF containing the generated password and sign-in details will be ready to download upon registration.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF166534), height: 1.3),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
         ],
@@ -1285,10 +2623,44 @@ class _AddUserScreenState extends State<AddUserScreen> {
     }
 
     // Teacher or Admin
+    final isTeacher = _selectedRole == 'Teacher';
+    final isAdmin = _selectedRole == 'Admin';
+
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
+      child: ElevatedButton.icon(
         onPressed: _isSubmitting ? null : _handleCreateSingleUser,
+        icon: _isSubmitting
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Icon(
+                isTeacher
+                    ? Icons.assignment_turned_in_rounded
+                    : (isAdmin
+                        ? Icons.admin_panel_settings_rounded
+                        : Icons.person_add_rounded),
+                size: 20,
+              ),
+        label: Text(
+          _isSubmitting
+              ? 'Processing...'
+              : (isTeacher
+                  ? 'Register Teacher & Generate Slip'
+                  : (isAdmin
+                      ? 'Register Administrator & Generate Slip'
+                      : 'Create $_selectedRole')),
+          style: const TextStyle(
+            fontSize: 15.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF2563EB),
           foregroundColor: Colors.white,
@@ -1298,23 +2670,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: _isSubmitting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : Text(
-                'Create $_selectedRole',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
       ),
     );
   }
@@ -1356,7 +2711,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
                   padding: const EdgeInsets.all(20),
                   child: _selectedRole == 'Student'
                       ? (_currentStep == 0 ? _buildStudentForm() : _buildParentForm())
-                      : _buildStandardForm(),
+                      : (_selectedRole == 'Teacher'
+                          ? _buildTeacherForm()
+                          : _buildAdminForm()),
                 ),
               ),
 

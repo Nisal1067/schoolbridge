@@ -205,6 +205,121 @@ class UserManagementService {
     return candidate;
   }
 
+  /// Generates a guaranteed unique teacher ID in format TCH-YYYY-XXXX
+  Future<String> generateUniqueTeacherId() async {
+    final currentYear = DateTime.now().year;
+    final existingNumbers = <String>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'teacher')
+          .get();
+      for (final doc in userSnap.docs) {
+        final data = doc.data();
+        final idVal = (data['employeeId'] ?? data['admissionNo'] ?? data['teacherId'])
+            ?.toString()
+            .trim();
+        if (idVal != null && idVal.isNotEmpty) {
+          existingNumbers.add(idVal.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final teacherSnap = await _firestore.collection('teachers').get();
+      for (final doc in teacherSnap.docs) {
+        final data = doc.data();
+        final idVal = (data['employeeId'] ?? data['admissionNo'] ?? data['teacherId'])
+            ?.toString()
+            .trim();
+        if (idVal != null && idVal.isNotEmpty) {
+          existingNumbers.add(idVal.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    for (final u in _users) {
+      if (u.role.toLowerCase() == 'teacher' && u.admissionNo.isNotEmpty) {
+        existingNumbers.add(u.admissionNo.trim().toUpperCase());
+      }
+    }
+
+    final prefix = 'TCH-$currentYear-';
+    final pattern = RegExp(r'^TCH-' + currentYear.toString() + r'-(\d+)$');
+    int maxSeq = 0;
+
+    for (final id in existingNumbers) {
+      final match = pattern.firstMatch(id);
+      if (match != null) {
+        final seq = int.tryParse(match.group(1)!) ?? 0;
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    int nextSeq = maxSeq + 1;
+    String candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    while (existingNumbers.contains(candidate)) {
+      nextSeq++;
+      candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    }
+
+    return candidate;
+  }
+
+  /// Generates a guaranteed unique administrator ID in format ADM-YYYY-XXXX
+  Future<String> generateUniqueAdminId() async {
+    final currentYear = DateTime.now().year;
+    final existingNumbers = <String>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'admin')
+          .get();
+      for (final doc in userSnap.docs) {
+        final data = doc.data();
+        final idVal = (data['employeeId'] ?? data['admissionNo'] ?? data['staffId'])
+            ?.toString()
+            .trim();
+        if (idVal != null && idVal.isNotEmpty) {
+          existingNumbers.add(idVal.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    for (final u in _users) {
+      if (u.role.toLowerCase() == 'admin' && u.admissionNo.isNotEmpty) {
+        existingNumbers.add(u.admissionNo.trim().toUpperCase());
+      }
+    }
+
+    final prefix = 'ADM-$currentYear-';
+    final pattern = RegExp(r'^ADM-' + currentYear.toString() + r'-(\d+)$');
+    int maxSeq = 0;
+
+    for (final id in existingNumbers) {
+      final match = pattern.firstMatch(id);
+      if (match != null) {
+        final seq = int.tryParse(match.group(1)!) ?? 0;
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    int nextSeq = maxSeq + 1;
+    String candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    while (existingNumbers.contains(candidate)) {
+      nextSeq++;
+      candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    }
+
+    return candidate;
+  }
+
   Future<UserItem> addUser(UserItem user, {String? password}) async {
     final tempApp = await Firebase.initializeApp(
       name: 'UserRegister_${DateTime.now().millisecondsSinceEpoch}',
@@ -229,6 +344,16 @@ class UserManagementService {
         processedUser = processedUser.copyWith(
           email: '${cleanAdm.isNotEmpty ? cleanAdm : "student"}@student.schoolbridge.lk',
         );
+      }
+    } else if (processedUser.role.toLowerCase() == 'teacher') {
+      if (processedUser.admissionNo.isEmpty) {
+        final autoTeacherId = await generateUniqueTeacherId();
+        processedUser = processedUser.copyWith(admissionNo: autoTeacherId);
+      }
+    } else if (processedUser.role.toLowerCase() == 'admin') {
+      if (processedUser.admissionNo.isEmpty) {
+        final autoAdminId = await generateUniqueAdminId();
+        processedUser = processedUser.copyWith(admissionNo: autoAdminId);
       }
     }
 
