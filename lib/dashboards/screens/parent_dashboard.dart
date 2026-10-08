@@ -218,39 +218,7 @@ class _ParentHome extends StatelessWidget {
                             style: TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 16),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: () => onNavigate(4),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.white, width: 2),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: Color(0xFF3B82F6),
-                                      child: Icon(Icons.person, size: 16, color: Colors.white),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Student Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-                                        Text('View Details >', style: TextStyle(fontSize: 10, color: Color(0xFF475569))),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                          _StudentProfileThumbnail(onTap: () => onNavigate(4)),
                         ],
                       );
                     },
@@ -357,10 +325,10 @@ class _ParentHome extends StatelessWidget {
           // Build dummy announcement list items mirroring the mockup
           SliverList(
             delegate: SliverChildListDelegate([
-              _buildAnnouncementCard('Term Test Timetable Released', 'The timetable for the upcoming term test is now available.', 'Oct 06, 2026', Icons.campaign_rounded, const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
-              _buildAnnouncementCard('Parent-Teacher Meeting', 'Schedule for the parent-teacher meeting has been published.', 'Oct 04, 2026', Icons.groups_rounded, const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
-              _buildAnnouncementCard('Science Project Deadline', 'Final submission date for the science project.', 'Oct 03, 2026', Icons.science_rounded, const Color(0xFF059669), const Color(0xFFECFDF5)),
-              _buildAnnouncementCard('School Holiday Notice', 'School will be closed on October 14 for the special holiday.', 'Oct 01, 2026', Icons.edit_calendar_rounded, const Color(0xFFD97706), const Color(0xFFFFFBEB)),
+              _buildAnnouncementCard(context, 'Term Test Timetable Released', 'The timetable for the upcoming term test is now available.', 'Oct 06, 2026', Icons.campaign_rounded, const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
+              _buildAnnouncementCard(context, 'Parent-Teacher Meeting', 'Schedule for the parent-teacher meeting has been published.', 'Oct 04, 2026', Icons.groups_rounded, const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+              _buildAnnouncementCard(context, 'Science Project Deadline', 'Final submission date for the science project.', 'Oct 03, 2026', Icons.science_rounded, const Color(0xFF059669), const Color(0xFFECFDF5)),
+              _buildAnnouncementCard(context, 'School Holiday Notice', 'School will be closed on October 14 for the special holiday.', 'Oct 01, 2026', Icons.edit_calendar_rounded, const Color(0xFFD97706), const Color(0xFFFFFBEB)),
               const SizedBox(height: 20),
             ]),
           ),
@@ -443,7 +411,7 @@ class _ParentHome extends StatelessWidget {
     );
   }
 
-  Widget _buildAnnouncementCard(String title, String subtitle, String date, IconData icon, Color primaryColor, Color backgroundColor) {
+  Widget _buildAnnouncementCard(BuildContext context, String title, String subtitle, String date, IconData icon, Color primaryColor, Color backgroundColor) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       decoration: BoxDecoration(
@@ -458,44 +426,202 @@ class _ParentHome extends StatelessWidget {
         ],
         border: Border.all(color: const Color(0xFFF1F5F9)),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: primaryColor, size: 22),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ParentHomeworkAnnouncementsScreen(),
+              ),
+            );
+          },
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: primaryColor, size: 22),
+            ),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  date,
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4.0),
               child: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
-                maxLines: 1,
+                subtitle,
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text(
-              date,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            subtitle,
-            style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
           ),
         ),
-        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
       ),
+    );
+  }
+}
+
+class _StudentProfileThumbnail extends StatelessWidget {
+  final VoidCallback onTap;
+  const _StudentProfileThumbnail({required this.onTap});
+
+  Future<Map<String, dynamic>?> _getStudentData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+    final profileSnap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if (!profileSnap.exists) return null;
+    final studentsSnap = await FirebaseFirestore.instance
+        .collection('students')
+        .where('schoolId', isEqualTo: profileSnap.data()?['schoolId'])
+        .where('parentIds', arrayContains: uid)
+        .get();
+    if (studentsSnap.docs.isNotEmpty) {
+      return studentsSnap.docs.first.data();
+    }
+    return null;
+  }
+
+  void _showStudentDetails(BuildContext context, Map<String, dynamic> studentData) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final name = studentData['name'] ?? 'Student';
+        final email = studentData['email'] ?? 'No e-mail provided';
+        final phone = studentData['phone'] ?? 'No phone provided';
+        final grade = studentData['grade'] ?? studentData['classId'] ?? 'N/A';
+        final status = studentData['active'] == false ? 'Inactive' : 'Active';
+
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const CircleAvatar(
+                radius: 40,
+                backgroundColor: Color(0xFFEFF6FF),
+                child: Icon(Icons.person, size: 40, color: Color(0xFF3B82F6)),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                name.toString(),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Grade/Class: $grade',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildDetailRow(Icons.email_outlined, email.toString()),
+              const SizedBox(height: 12),
+              _buildDetailRow(Icons.phone_outlined, phone.toString()),
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                status == 'Active' ? Icons.check_circle_outline : Icons.cancel_outlined,
+                'Status: $status',
+                color: status == 'Active' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String text, {Color color = const Color(0xFF475569)}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: color == const Color(0xFF475569) ? const Color(0xFF334155) : color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _getStudentData(),
+      builder: (context, snapshot) {
+        final studentData = snapshot.data;
+        final studentName = studentData?['name'] ?? 'Student Profile';
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: studentData != null ? () => _showStudentDetails(context, studentData) : onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircleAvatar(
+                    radius: 14,
+                    backgroundColor: Color(0xFF3B82F6),
+                    child: Icon(Icons.person, size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(studentName.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                      const Text('View Details >', style: TextStyle(fontSize: 10, color: Color(0xFF475569))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

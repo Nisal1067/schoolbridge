@@ -93,12 +93,13 @@ class ChatService {
     final profile = (await db.collection('users').doc(uid).get()).data()!;
     final attendance = AttendanceService();
     final result = <String, Map<String, dynamic>>{};
-    if (profile['role'] == 'teacher') {
+    if (profile['role']?.toString().toLowerCase() == 'teacher') {
       for (final classroom in await attendance.teacherClasses()) {
         for (final student in await attendance.studentsForClass(classroom)) {
           final doc = (await db.collection('students').doc(student['id']).get())
               .data()!;
           for (final parentId in List<String>.from(doc['parentIds'] ?? [])) {
+            if (parentId.trim().isEmpty) continue;
             final parentDoc = await db.collection('users').doc(parentId).get();
             final parentName = parentDoc.exists && parentDoc.data()?['name'] != null
                 ? parentDoc.data()!['name']
@@ -114,10 +115,12 @@ class ChatService {
           }
         }
       }
-    } else if (profile['role'] == 'parent') {
+    } else if (profile['role']?.toString().toLowerCase() == 'parent') {
       for (final child in await attendance.linkedStudents()) {
+        final classId = child['classId'] as String?;
+        if (classId == null || classId.isEmpty) continue;
         final classroom =
-            (await db.collection('classes').doc(child['classId']).get()).data();
+            (await db.collection('classes').doc(classId).get()).data();
         if (classroom == null) continue;
         final teachers = <String>{
           ...List<String>.from(classroom['teacherIds'] ?? []),
@@ -125,6 +128,7 @@ class ChatService {
             classroom['teacherId'] as String,
         };
         for (final teacherId in teachers) {
+          if (teacherId.trim().isEmpty) continue;
           final teacherDoc = await db.collection('users').doc(teacherId).get();
           final teacherName = teacherDoc.exists && teacherDoc.data()?['name'] != null
               ? teacherDoc.data()!['name']

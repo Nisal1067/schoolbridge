@@ -168,9 +168,9 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
       future: _contacts,
       builder: (context, contacts) {
         if (contacts.hasError) {
-          return const Center(
+          return Center(
             child: Text(
-              'Could not load contacts. Check your connection and linked accounts.',
+              'Could not load contacts. Error: ${contacts.error}\nCheck your connection and linked accounts.',
             ),
           );
         }

@@ -43,8 +43,8 @@ class AttendanceService {
     if (uid == null) throw StateError('Please sign in again.');
     final doc = await _firestore.collection('users').doc(uid).get();
     final data = doc.data();
-    if (data == null || data['active'] != true) {
-      throw StateError('Your account is not active.');
+    if (data == null || data['active'] == false) {
+      throw StateError('Your account is deactivated.');
     }
     return {...data, 'uid': uid};
   }
@@ -91,7 +91,7 @@ class AttendanceService {
 
   Future<List<Map<String, dynamic>>> linkedStudents() async {
     final user = await profile();
-    if (user['role'] == 'student') {
+    if (user['role']?.toString().toLowerCase() == 'student') {
       final doc = await _firestore
           .collection('students')
           .doc(user['uid'])
@@ -102,7 +102,7 @@ class AttendanceService {
             ]
           : [];
     }
-    if (user['role'] != 'parent') {
+    if (user['role']?.toString().toLowerCase() != 'parent') {
       throw StateError('Student or parent access required.');
     }
     final result = await _firestore
