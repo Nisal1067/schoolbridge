@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../auth/widgets/logout_button.dart';
 
-import '../../core/theme/app_theme.dart';
-import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 import '../../features/user_communication/communication_screen.dart';
