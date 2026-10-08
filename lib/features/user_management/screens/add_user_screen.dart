@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/user_item.dart';
 import '../services/user_management_service.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/registration_success_dialog.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -49,6 +50,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
   final List<String> _genders = ['Male', 'Female', 'Other'];
   final List<String> _relationships = ['Father', 'Mother', 'Guardian', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.text = UserManagementService.generateSecurePassword();
+    _parentPasswordController.text = UserManagementService.generateSecurePassword();
+  }
 
   @override
   void dispose() {
@@ -198,6 +206,113 @@ class _AddUserScreenState extends State<AddUserScreen> {
               : suffixIcon,
         ),
       ),
+    );
+  }
+
+  Widget _buildAutoPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool obscure,
+    required VoidCallback onToggleObscure,
+    required VoidCallback onRegenerate,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildFieldLabel(label),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x04000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.vpn_key_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Temporary Password',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'AUTO-GENERATED',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF16A34A),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      obscure ? '••••••••' : controller.text,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                        fontFamily: 'monospace',
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: const Color(0xFF94A3B8),
+                  size: 20,
+                ),
+                onPressed: onToggleObscure,
+                tooltip: obscure ? 'Show' : 'Hide',
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: Color(0xFF2563EB), size: 20),
+                onPressed: onRegenerate,
+                tooltip: 'Generate New Password',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -388,6 +503,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
     setState(() => _isSubmitting = true);
 
+    final password = _passwordController.text.trim().isNotEmpty
+        ? _passwordController.text.trim()
+        : UserManagementService.generateSecurePassword();
+
     final newUser = UserItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
@@ -406,12 +525,22 @@ class _AddUserScreenState extends State<AddUserScreen> {
       parentIds: const [],
     );
 
-    final password = _passwordController.text.trim().isNotEmpty
-        ? _passwordController.text.trim()
-        : '123456';
-
     try {
-      await UserManagementService().addUser(newUser, password: password);
+      final createdUser = await UserManagementService().addUser(
+        newUser,
+        password: password,
+      );
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        await RegistrationSuccessDialog.showSingleUser(
+          context,
+          user: createdUser,
+          password: password,
+        );
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -422,21 +551,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
         );
       }
-      return;
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${newUser.role} "${newUser.name}" registered successfully!'),
-          backgroundColor: const Color(0xFF16A34A),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-      Navigator.of(context).pop();
     }
   }
 
@@ -447,7 +561,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     final studentEmail = _emailController.text.trim().toLowerCase();
     final parentEmail = _parentEmailController.text.trim().toLowerCase();
 
-    if (studentEmail == parentEmail) {
+    if (studentEmail.isNotEmpty && studentEmail == parentEmail) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Parent email cannot be identical to student email.'),
@@ -466,14 +580,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
       id: '',
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
-      phone: _phoneController.text.trim().isEmpty
-          ? '077 000 0000'
-          : _phoneController.text.trim(),
+      phone: _phoneController.text.trim(),
       homePhone: _homePhoneController.text.trim(),
       address: _addressController.text.trim(),
       dob: _dobController.text.trim(),
       gender: _selectedGender,
-      admissionNo: _admissionNoController.text.trim(),
+      admissionNo: '', // Auto-generated unique admission number by system
       role: 'Student',
       gradeOrClass: _gradeController.text.trim().isEmpty
           ? '10-A'
@@ -487,9 +599,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
       id: '',
       name: _parentNameController.text.trim(),
       email: _parentEmailController.text.trim(),
-      phone: _parentPhoneController.text.trim().isEmpty
-          ? '077 000 0000'
-          : _parentPhoneController.text.trim(),
+      phone: _parentPhoneController.text.trim(),
       homePhone: _homePhoneController.text.trim(),
       address: _addressController.text.trim(),
       nic: _parentNicController.text.trim(),
@@ -503,10 +613,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
     final studentPassword = _passwordController.text.trim().isNotEmpty
         ? _passwordController.text.trim()
-        : '123456';
+        : UserManagementService.generateSecurePassword();
     final parentPassword = _parentPasswordController.text.trim().isNotEmpty
         ? _parentPasswordController.text.trim()
-        : '123456';
+        : UserManagementService.generateSecurePassword();
 
     try {
       final result = await UserManagementService().addStudentWithParent(
@@ -517,22 +627,23 @@ class _AddUserScreenState extends State<AddUserScreen> {
       );
 
       if (mounted) {
-        final sName = result['student']?.name ?? 'Student';
-        final pName = result['parent']?.name ?? 'Parent';
+        setState(() => _isSubmitting = false);
+        final finalStudent = result['student'] as UserItem;
+        final finalParent = result['parent'] as UserItem;
+        final sPass = (result['studentPassword'] as String?) ?? studentPassword;
+        final pPass = (result['parentPassword'] as String?) ?? parentPassword;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Successfully registered Student "$sName" & Parent "$pName"!',
-            ),
-            backgroundColor: const Color(0xFF16A34A),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        await RegistrationSuccessDialog.showStudentParent(
+          context,
+          student: finalStudent,
+          studentPassword: sPass,
+          parent: finalParent,
+          parentPassword: pPass,
         );
-        Navigator.of(context).pop();
+
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -578,18 +689,37 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Admission No & Class/Grade in a Row
+          // Admission No (Auto-Generated) & Class/Grade in a Row
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel('Admission / Index No', isOptional: true),
-                    _buildTextField(
-                      controller: _admissionNoController,
-                      hintText: 'e.g. STU-2026-0042',
-                      prefixIcon: const Icon(Icons.badge_outlined, color: Color(0xFF94A3B8), size: 20),
+                    _buildFieldLabel('Admission / Index No'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 18),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Auto-generated by system',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -615,16 +745,20 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Student Email
-          _buildFieldLabel('Student Email (Sign-in Account)'),
+          // Student Email (Optional)
+          _buildFieldLabel('Student Email (Sign-in Account)', isOptional: true),
           _buildTextField(
             controller: _emailController,
-            hintText: 'e.g. kasun@school.lk',
+            hintText: 'e.g. kasun@school.lk (Optional - auto-generated if blank)',
             keyboardType: TextInputType.emailAddress,
             prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF94A3B8), size: 20),
-            validator: (v) => (v == null || !v.contains('@'))
-                ? 'Please enter a valid student email'
-                : null,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return null;
+              if (!v.contains('@') || !v.contains('.')) {
+                return 'Please enter a valid email address';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 16),
 
@@ -706,19 +840,22 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Home Phone (Landline) & Student Mobile Phone
+          // Home Phone (Landline) & Student Mobile Phone (Both Mandatory)
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel('Home Phone', isOptional: true),
+                    _buildFieldLabel('Home Phone (Landline)'),
                     _buildTextField(
                       controller: _homePhoneController,
                       hintText: 'e.g. 011 234 5678',
                       keyboardType: TextInputType.phone,
                       prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF94A3B8), size: 20),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Please enter home phone'
+                          : null,
                     ),
                   ],
                 ),
@@ -728,12 +865,15 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel('Student Mobile', isOptional: true),
+                    _buildFieldLabel('Student Mobile'),
                     _buildTextField(
                       controller: _phoneController,
                       hintText: 'e.g. 077 123 4567',
                       keyboardType: TextInputType.phone,
                       prefixIcon: const Icon(Icons.phone_iphone_outlined, color: Color(0xFF94A3B8), size: 20),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Please enter student mobile'
+                          : null,
                     ),
                   ],
                 ),
@@ -742,18 +882,15 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Temporary Password for Student
-          _buildFieldLabel('Temporary Password for Student'),
-          _buildTextField(
+          // System Auto-Generated Password for Student
+          _buildAutoPasswordField(
             controller: _passwordController,
-            hintText: 'Minimum 6 characters (Default: 123456)',
-            isPassword: true,
+            label: 'Student Temporary Password',
             obscure: _obscurePassword,
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF94A3B8), size: 20),
             onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-            validator: (v) => (v != null && v.isNotEmpty && v.length < 6)
-                ? 'Password must be at least 6 characters'
-                : null,
+            onRegenerate: () => setState(() {
+              _passwordController.text = UserManagementService.generateSecurePassword();
+            }),
           ),
           const SizedBox(height: 24),
         ],
@@ -963,18 +1100,15 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Temporary Password for Parent
-          _buildFieldLabel('Temporary Password for Parent'),
-          _buildTextField(
+          // System Auto-Generated Password for Parent
+          _buildAutoPasswordField(
             controller: _parentPasswordController,
-            hintText: 'Minimum 6 characters (Default: 123456)',
-            isPassword: true,
+            label: 'Parent Temporary Password',
             obscure: _obscureParentPassword,
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF94A3B8), size: 20),
             onToggleObscure: () => setState(() => _obscureParentPassword = !_obscureParentPassword),
-            validator: (v) => (v != null && v.isNotEmpty && v.length < 6)
-                ? 'Password must be at least 6 characters'
-                : null,
+            onRegenerate: () => setState(() {
+              _parentPasswordController.text = UserManagementService.generateSecurePassword();
+            }),
           ),
           const SizedBox(height: 24),
         ],
@@ -1046,17 +1180,15 @@ class _AddUserScreenState extends State<AddUserScreen> {
           ),
           const SizedBox(height: 18),
 
-          _buildFieldLabel('Temporary Password'),
-          _buildTextField(
+          // System Auto-Generated Password for Teacher / Admin
+          _buildAutoPasswordField(
             controller: _passwordController,
-            hintText: 'Enter password (Default: 123456)',
-            isPassword: true,
+            label: 'Temporary Password',
             obscure: _obscurePassword,
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF94A3B8), size: 20),
             onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-            validator: (v) => (v != null && v.isNotEmpty && v.length < 6)
-                ? 'Password must be at least 6 characters'
-                : null,
+            onRegenerate: () => setState(() {
+              _passwordController.text = UserManagementService.generateSecurePassword();
+            }),
           ),
           const SizedBox(height: 24),
         ],

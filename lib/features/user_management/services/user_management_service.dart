@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -134,26 +135,114 @@ class UserManagementService {
     return currentUsers;
   }
 
-  Future<void> addUser(UserItem user, {String? password}) async {
+  /// Generates a secure, readable temporary password
+  static String generateSecurePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    final rand = Random();
+    final letter1 = chars[rand.nextInt(chars.length)];
+    final letter2 = chars[rand.nextInt(chars.length)].toLowerCase();
+    final num = 1000 + rand.nextInt(9000);
+    return 'Sb@$num$letter1$letter2';
+  }
+
+  /// Generates a guaranteed unique admission number in format STU-YYYY-XXXX
+  Future<String> generateUniqueAdmissionNo() async {
+    final currentYear = DateTime.now().year;
+    final existingNumbers = <String>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'student')
+          .get();
+      for (final doc in userSnap.docs) {
+        final adm = doc.data()['admissionNo']?.toString().trim();
+        if (adm != null && adm.isNotEmpty) {
+          existingNumbers.add(adm.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final studentSnap = await _firestore.collection('students').get();
+      for (final doc in studentSnap.docs) {
+        final adm = (doc.data()['admissionNo'] ?? doc.data()['indexNo'])
+            ?.toString()
+            .trim();
+        if (adm != null && adm.isNotEmpty) {
+          existingNumbers.add(adm.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    for (final u in _users) {
+      if (u.admissionNo.isNotEmpty) {
+        existingNumbers.add(u.admissionNo.trim().toUpperCase());
+      }
+    }
+
+    final prefix = 'STU-$currentYear-';
+    final pattern = RegExp('^STU-$currentYear-(\\d+)\$');
+    int maxSeq = 0;
+
+    for (final adm in existingNumbers) {
+      final match = pattern.firstMatch(adm);
+      if (match != null) {
+        final seq = int.tryParse(match.group(1)!) ?? 0;
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    int nextSeq = maxSeq + 1;
+    String candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    while (existingNumbers.contains(candidate)) {
+      nextSeq++;
+      candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    }
+
+    return candidate;
+  }
+
+  Future<UserItem> addUser(UserItem user, {String? password}) async {
     final tempApp = await Firebase.initializeApp(
       name: 'UserRegister_${DateTime.now().millisecondsSinceEpoch}',
       options: DefaultFirebaseOptions.currentPlatform,
     );
     User? createdUser;
     late UserItem finalUser;
+    final effectivePassword = (password != null && password.trim().isNotEmpty)
+        ? password.trim()
+        : generateSecurePassword();
+
+    var processedUser = user;
+    if (processedUser.role.toLowerCase() == 'student') {
+      if (processedUser.admissionNo.isEmpty) {
+        final autoAdmission = await generateUniqueAdmissionNo();
+        processedUser = processedUser.copyWith(admissionNo: autoAdmission);
+      }
+      if (processedUser.email.trim().isEmpty) {
+        final cleanAdm = processedUser.admissionNo
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9]'), '');
+        processedUser = processedUser.copyWith(
+          email: '${cleanAdm.isNotEmpty ? cleanAdm : "student"}@student.schoolbridge.lk',
+        );
+      }
+    }
+
     try {
       final credential = await FirebaseAuth.instanceFor(app: tempApp)
           .createUserWithEmailAndPassword(
-            email: user.email.trim(),
-            password: password?.trim().isNotEmpty == true
-                ? password!.trim()
-                : '123456',
+            email: processedUser.email.trim(),
+            password: effectivePassword,
           );
       createdUser = credential.user;
       if (createdUser == null) {
         throw StateError('Authentication user was not created.');
       }
-      finalUser = user.copyWith(id: createdUser.uid);
+      finalUser = processedUser.copyWith(id: createdUser.uid);
       await ClassAssignmentService(_firestore)
           .save(finalUser.id, finalUser.toMap());
     } catch (_) {
@@ -170,11 +259,12 @@ class UserManagementService {
     _users.removeWhere((u) => u.id == finalUser.id);
     _users.insert(0, finalUser);
     _streamController.add(List.unmodifiable(_users));
+    return finalUser;
   }
 
   /// Registers a student and parent together, saving each separately in DB
   /// with proper linking in `users` and `students` collections.
-  Future<Map<String, UserItem>> addStudentWithParent({
+  Future<Map<String, dynamic>> addStudentWithParent({
     required UserItem student,
     required String studentPassword,
     required UserItem parent,
@@ -190,13 +280,36 @@ class UserManagementService {
     late UserItem finalParent;
     late UserItem finalStudent;
 
+    // Ensure admission number is generated if not provided
+    var processedStudent = student;
+    if (processedStudent.admissionNo.trim().isEmpty) {
+      final autoAdmission = await generateUniqueAdmissionNo();
+      processedStudent = processedStudent.copyWith(admissionNo: autoAdmission);
+    }
+
+    // Ensure student email is generated if optional email is empty
+    if (processedStudent.email.trim().isEmpty) {
+      final cleanAdm = processedStudent.admissionNo
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]'), '');
+      processedStudent = processedStudent.copyWith(
+        email: '${cleanAdm.isNotEmpty ? cleanAdm : "student"}@student.schoolbridge.lk',
+      );
+    }
+
+    final effectiveStudentPassword = studentPassword.trim().isNotEmpty
+        ? studentPassword.trim()
+        : generateSecurePassword();
+
+    final effectiveParentPassword = parentPassword.trim().isNotEmpty
+        ? parentPassword.trim()
+        : generateSecurePassword();
+
     try {
       // 1. Create Parent in Firebase Auth
       final parentCred = await auth.createUserWithEmailAndPassword(
         email: parent.email.trim(),
-        password: parentPassword.trim().isNotEmpty
-            ? parentPassword.trim()
-            : '123456',
+        password: effectiveParentPassword,
       );
       createdParentUser = parentCred.user;
       if (createdParentUser == null) {
@@ -210,10 +323,8 @@ class UserManagementService {
 
       // 2. Create Student in Firebase Auth
       final studentCred = await auth.createUserWithEmailAndPassword(
-        email: student.email.trim(),
-        password: studentPassword.trim().isNotEmpty
-            ? studentPassword.trim()
-            : '123456',
+        email: processedStudent.email.trim(),
+        password: effectiveStudentPassword,
       );
       createdStudentUser = studentCred.user;
       if (createdStudentUser == null) {
@@ -221,7 +332,7 @@ class UserManagementService {
       }
 
       // Link student to the newly created parent's UID
-      finalStudent = student.copyWith(
+      finalStudent = processedStudent.copyWith(
         id: createdStudentUser.uid,
         parentIds: [finalParent.id],
       );
@@ -258,6 +369,8 @@ class UserManagementService {
     return {
       'student': finalStudent,
       'parent': finalParent,
+      'studentPassword': effectiveStudentPassword,
+      'parentPassword': effectiveParentPassword,
     };
   }
 

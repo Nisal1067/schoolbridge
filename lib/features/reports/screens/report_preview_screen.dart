@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../user_management/widgets/custom_app_bar.dart';
+import '../services/pdf_generator_service.dart';
 import '../widgets/performance_bar_chart.dart';
 
 class ReportPreviewScreen extends StatelessWidget {
@@ -194,17 +195,44 @@ class ReportPreviewScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Downloading report PDF...'),
-                        backgroundColor: const Color(0xFF2563EB),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
+                  onPressed: () async {
+                    try {
+                      await PdfGeneratorService().downloadAcademicReportPdf(
+                        title: title,
+                        term: term,
+                        grade: grade,
+                        subjects: const {
+                          'Mathematics': 78,
+                          'Science': 71,
+                          'English': 82,
+                        },
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                                SizedBox(width: 8),
+                                Text('Report PDF downloaded successfully!'),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF16A34A),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to download: $e'),
+                            backgroundColor: const Color(0xFFEF4444),
+                          ),
+                        );
+                      }
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
