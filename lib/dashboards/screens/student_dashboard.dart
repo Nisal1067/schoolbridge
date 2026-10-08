@@ -27,7 +27,22 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: selectedIndex == 1
           ? null
           : AppBar(
-              title: const Text('SchoolBridge'),
+              title: const Row(
+                children: [
+                  Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    'SchoolBridge',
+                    style: TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+              surfaceTintColor: Colors.transparent,
               actions: [
                 const LogoutButton(),
                 IconButton(
