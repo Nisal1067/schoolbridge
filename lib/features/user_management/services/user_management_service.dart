@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -134,26 +135,239 @@ class UserManagementService {
     return currentUsers;
   }
 
-  Future<void> addUser(UserItem user, {String? password}) async {
+  /// Generates a secure, readable temporary password
+  static String generateSecurePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    final rand = Random();
+    final letter1 = chars[rand.nextInt(chars.length)];
+    final letter2 = chars[rand.nextInt(chars.length)].toLowerCase();
+    final num = 1000 + rand.nextInt(9000);
+    return 'Sb@$num$letter1$letter2';
+  }
+
+  /// Generates a guaranteed unique admission number in format STU-YYYY-XXXX
+  Future<String> generateUniqueAdmissionNo() async {
+    final currentYear = DateTime.now().year;
+    final existingNumbers = <String>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'student')
+          .get();
+      for (final doc in userSnap.docs) {
+        final adm = doc.data()['admissionNo']?.toString().trim();
+        if (adm != null && adm.isNotEmpty) {
+          existingNumbers.add(adm.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final studentSnap = await _firestore.collection('students').get();
+      for (final doc in studentSnap.docs) {
+        final adm = (doc.data()['admissionNo'] ?? doc.data()['indexNo'])
+            ?.toString()
+            .trim();
+        if (adm != null && adm.isNotEmpty) {
+          existingNumbers.add(adm.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    for (final u in _users) {
+      if (u.admissionNo.isNotEmpty) {
+        existingNumbers.add(u.admissionNo.trim().toUpperCase());
+      }
+    }
+
+    final prefix = 'STU-$currentYear-';
+    final pattern = RegExp('^STU-$currentYear-(\\d+)\$');
+    int maxSeq = 0;
+
+    for (final adm in existingNumbers) {
+      final match = pattern.firstMatch(adm);
+      if (match != null) {
+        final seq = int.tryParse(match.group(1)!) ?? 0;
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    int nextSeq = maxSeq + 1;
+    String candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    while (existingNumbers.contains(candidate)) {
+      nextSeq++;
+      candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    }
+
+    return candidate;
+  }
+
+  /// Generates a guaranteed unique teacher ID in format TCH-YYYY-XXXX
+  Future<String> generateUniqueTeacherId() async {
+    final currentYear = DateTime.now().year;
+    final existingNumbers = <String>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'teacher')
+          .get();
+      for (final doc in userSnap.docs) {
+        final data = doc.data();
+        final idVal = (data['employeeId'] ?? data['admissionNo'] ?? data['teacherId'])
+            ?.toString()
+            .trim();
+        if (idVal != null && idVal.isNotEmpty) {
+          existingNumbers.add(idVal.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final teacherSnap = await _firestore.collection('teachers').get();
+      for (final doc in teacherSnap.docs) {
+        final data = doc.data();
+        final idVal = (data['employeeId'] ?? data['admissionNo'] ?? data['teacherId'])
+            ?.toString()
+            .trim();
+        if (idVal != null && idVal.isNotEmpty) {
+          existingNumbers.add(idVal.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    for (final u in _users) {
+      if (u.role.toLowerCase() == 'teacher' && u.admissionNo.isNotEmpty) {
+        existingNumbers.add(u.admissionNo.trim().toUpperCase());
+      }
+    }
+
+    final prefix = 'TCH-$currentYear-';
+    final pattern = RegExp(r'^TCH-' + currentYear.toString() + r'-(\d+)$');
+    int maxSeq = 0;
+
+    for (final id in existingNumbers) {
+      final match = pattern.firstMatch(id);
+      if (match != null) {
+        final seq = int.tryParse(match.group(1)!) ?? 0;
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    int nextSeq = maxSeq + 1;
+    String candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    while (existingNumbers.contains(candidate)) {
+      nextSeq++;
+      candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    }
+
+    return candidate;
+  }
+
+  /// Generates a guaranteed unique administrator ID in format ADM-YYYY-XXXX
+  Future<String> generateUniqueAdminId() async {
+    final currentYear = DateTime.now().year;
+    final existingNumbers = <String>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'admin')
+          .get();
+      for (final doc in userSnap.docs) {
+        final data = doc.data();
+        final idVal = (data['employeeId'] ?? data['admissionNo'] ?? data['staffId'])
+            ?.toString()
+            .trim();
+        if (idVal != null && idVal.isNotEmpty) {
+          existingNumbers.add(idVal.toUpperCase());
+        }
+      }
+    } catch (_) {}
+
+    for (final u in _users) {
+      if (u.role.toLowerCase() == 'admin' && u.admissionNo.isNotEmpty) {
+        existingNumbers.add(u.admissionNo.trim().toUpperCase());
+      }
+    }
+
+    final prefix = 'ADM-$currentYear-';
+    final pattern = RegExp(r'^ADM-' + currentYear.toString() + r'-(\d+)$');
+    int maxSeq = 0;
+
+    for (final id in existingNumbers) {
+      final match = pattern.firstMatch(id);
+      if (match != null) {
+        final seq = int.tryParse(match.group(1)!) ?? 0;
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    int nextSeq = maxSeq + 1;
+    String candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    while (existingNumbers.contains(candidate)) {
+      nextSeq++;
+      candidate = '$prefix${nextSeq.toString().padLeft(4, '0')}';
+    }
+
+    return candidate;
+  }
+
+  Future<UserItem> addUser(UserItem user, {String? password}) async {
     final tempApp = await Firebase.initializeApp(
       name: 'UserRegister_${DateTime.now().millisecondsSinceEpoch}',
       options: DefaultFirebaseOptions.currentPlatform,
     );
     User? createdUser;
     late UserItem finalUser;
+    final effectivePassword = (password != null && password.trim().isNotEmpty)
+        ? password.trim()
+        : generateSecurePassword();
+
+    var processedUser = user;
+    if (processedUser.role.toLowerCase() == 'student') {
+      if (processedUser.admissionNo.isEmpty) {
+        final autoAdmission = await generateUniqueAdmissionNo();
+        processedUser = processedUser.copyWith(admissionNo: autoAdmission);
+      }
+      if (processedUser.email.trim().isEmpty) {
+        final cleanAdm = processedUser.admissionNo
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9]'), '');
+        processedUser = processedUser.copyWith(
+          email: '${cleanAdm.isNotEmpty ? cleanAdm : "student"}@student.schoolbridge.lk',
+        );
+      }
+    } else if (processedUser.role.toLowerCase() == 'teacher') {
+      if (processedUser.admissionNo.isEmpty) {
+        final autoTeacherId = await generateUniqueTeacherId();
+        processedUser = processedUser.copyWith(admissionNo: autoTeacherId);
+      }
+    } else if (processedUser.role.toLowerCase() == 'admin') {
+      if (processedUser.admissionNo.isEmpty) {
+        final autoAdminId = await generateUniqueAdminId();
+        processedUser = processedUser.copyWith(admissionNo: autoAdminId);
+      }
+    }
+
     try {
       final credential = await FirebaseAuth.instanceFor(app: tempApp)
           .createUserWithEmailAndPassword(
-            email: user.email.trim(),
-            password: password?.trim().isNotEmpty == true
-                ? password!.trim()
-                : '123456',
+            email: processedUser.email.trim(),
+            password: effectivePassword,
           );
       createdUser = credential.user;
       if (createdUser == null) {
         throw StateError('Authentication user was not created.');
       }
-      finalUser = user.copyWith(id: createdUser.uid);
+      finalUser = processedUser.copyWith(id: createdUser.uid);
       await ClassAssignmentService(_firestore)
           .save(finalUser.id, finalUser.toMap());
     } catch (_) {
@@ -170,7 +384,121 @@ class UserManagementService {
     _users.removeWhere((u) => u.id == finalUser.id);
     _users.insert(0, finalUser);
     _streamController.add(List.unmodifiable(_users));
+    return finalUser;
   }
+
+  /// Registers a student and parent together, saving each separately in DB
+  /// with proper linking in `users` and `students` collections.
+  Future<Map<String, dynamic>> addStudentWithParent({
+    required UserItem student,
+    required String studentPassword,
+    required UserItem parent,
+    required String parentPassword,
+  }) async {
+    final tempApp = await Firebase.initializeApp(
+      name: 'StudentParentRegister_${DateTime.now().millisecondsSinceEpoch}',
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    final auth = FirebaseAuth.instanceFor(app: tempApp);
+    User? createdParentUser;
+    User? createdStudentUser;
+    late UserItem finalParent;
+    late UserItem finalStudent;
+
+    // Ensure admission number is generated if not provided
+    var processedStudent = student;
+    if (processedStudent.admissionNo.trim().isEmpty) {
+      final autoAdmission = await generateUniqueAdmissionNo();
+      processedStudent = processedStudent.copyWith(admissionNo: autoAdmission);
+    }
+
+    // Ensure student email is generated if optional email is empty
+    if (processedStudent.email.trim().isEmpty) {
+      final cleanAdm = processedStudent.admissionNo
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]'), '');
+      processedStudent = processedStudent.copyWith(
+        email: '${cleanAdm.isNotEmpty ? cleanAdm : "student"}@student.schoolbridge.lk',
+      );
+    }
+
+    final effectiveStudentPassword = studentPassword.trim().isNotEmpty
+        ? studentPassword.trim()
+        : generateSecurePassword();
+
+    final effectiveParentPassword = parentPassword.trim().isNotEmpty
+        ? parentPassword.trim()
+        : generateSecurePassword();
+
+    try {
+      // 1. Create Parent in Firebase Auth
+      final parentCred = await auth.createUserWithEmailAndPassword(
+        email: parent.email.trim(),
+        password: effectiveParentPassword,
+      );
+      createdParentUser = parentCred.user;
+      if (createdParentUser == null) {
+        throw StateError('Parent authentication user could not be created.');
+      }
+      finalParent = parent.copyWith(id: createdParentUser.uid);
+
+      // Save parent separately in Firestore users collection
+      await ClassAssignmentService(_firestore)
+          .save(finalParent.id, finalParent.toMap());
+
+      // 2. Create Student in Firebase Auth
+      final studentCred = await auth.createUserWithEmailAndPassword(
+        email: processedStudent.email.trim(),
+        password: effectiveStudentPassword,
+      );
+      createdStudentUser = studentCred.user;
+      if (createdStudentUser == null) {
+        throw StateError('Student authentication user could not be created.');
+      }
+
+      // Link student to the newly created parent's UID
+      finalStudent = processedStudent.copyWith(
+        id: createdStudentUser.uid,
+        parentIds: [finalParent.id],
+      );
+
+      // Save student in Firestore users and students collections
+      await ClassAssignmentService(_firestore)
+          .save(finalStudent.id, finalStudent.toMap());
+    } catch (_) {
+      // Clean up on failure so no orphaned accounts remain
+      if (createdStudentUser != null) {
+        try {
+          await createdStudentUser.delete();
+          await _firestore.collection('users').doc(createdStudentUser.uid).delete();
+          await _firestore.collection('students').doc(createdStudentUser.uid).delete();
+        } catch (_) {}
+      }
+      if (createdParentUser != null) {
+        try {
+          await createdParentUser.delete();
+          await _firestore.collection('users').doc(createdParentUser.uid).delete();
+        } catch (_) {}
+      }
+      rethrow;
+    } finally {
+      await tempApp.delete();
+    }
+
+    // Update local cache so admin immediately sees both new users
+    _users.removeWhere((u) => u.id == finalParent.id || u.id == finalStudent.id);
+    _users.insert(0, finalStudent);
+    _users.insert(1, finalParent);
+    _streamController.add(List.unmodifiable(_users));
+
+    return {
+      'student': finalStudent,
+      'parent': finalParent,
+      'studentPassword': effectiveStudentPassword,
+      'parentPassword': effectiveParentPassword,
+    };
+  }
+
 
   Future<void> updateUser(UserItem updatedUser) async {
     await ClassAssignmentService(_firestore)

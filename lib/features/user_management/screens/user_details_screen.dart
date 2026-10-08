@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../reports/services/pdf_generator_service.dart';
 import '../models/user_item.dart';
 import '../services/user_management_service.dart';
 import '../widgets/custom_app_bar.dart';
@@ -121,9 +122,63 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
-      appBar: const SchoolBridgeAppBar(
+      appBar: SchoolBridgeAppBar(
         title: 'User Details',
         showBackButton: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined, color: Color(0xFF2563EB)),
+            tooltip: 'Download PDF Slip',
+            onPressed: () async {
+              try {
+                if (_currentUser.role.toLowerCase() == 'student') {
+                  final allUsers = UserManagementService().currentUsers;
+                  UserItem? linkedParent;
+                  if (_currentUser.parentIds.isNotEmpty) {
+                    final pId = _currentUser.parentIds.first;
+                    linkedParent = allUsers.where((u) => u.id == pId).firstOrNull;
+                  }
+                  if (linkedParent != null) {
+                    await PdfGeneratorService().downloadStudentParentSlip(
+                      student: _currentUser,
+                      studentPassword: '[Saved / Unchanged]',
+                      parent: linkedParent,
+                      parentPassword: '[Saved / Unchanged]',
+                    );
+                  } else {
+                    await PdfGeneratorService().downloadSingleUserSlip(
+                      user: _currentUser,
+                      password: '[Saved / Unchanged]',
+                    );
+                  }
+                } else {
+                  await PdfGeneratorService().downloadSingleUserSlip(
+                    user: _currentUser,
+                    password: '[Saved / Unchanged]',
+                  );
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('PDF downloaded successfully!'),
+                      backgroundColor: Color(0xFF16A34A),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to download PDF: $e'),
+                      backgroundColor: const Color(0xFFEF4444),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -228,6 +283,48 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           ? _currentUser.gradeOrClass
                           : 'Not assigned',
                     ),
+                    if (_currentUser.admissionNo.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.confirmation_number_outlined,
+                        label: 'Admission / Index No',
+                        value: _currentUser.admissionNo,
+                      ),
+                    if (_currentUser.dob.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.cake_outlined,
+                        label: 'Date of Birth',
+                        value: _currentUser.dob,
+                      ),
+                    if (_currentUser.gender.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.person_outline,
+                        label: 'Gender',
+                        value: _currentUser.gender,
+                      ),
+                    if (_currentUser.address.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.location_on_outlined,
+                        label: 'Home Address',
+                        value: _currentUser.address,
+                      ),
+                    if (_currentUser.homePhone.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.contact_phone_outlined,
+                        label: 'Home Phone / Landline',
+                        value: _currentUser.homePhone,
+                      ),
+                    if (_currentUser.nic.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.credit_card_outlined,
+                        label: 'NIC / National ID',
+                        value: _currentUser.nic,
+                      ),
+                    if (_currentUser.occupation.isNotEmpty)
+                      _buildDetailCard(
+                        icon: Icons.work_outline,
+                        label: 'Occupation',
+                        value: _currentUser.occupation,
+                      ),
                     _buildDetailCard(
                       icon: Icons.calendar_today_outlined,
                       label: 'Joined',

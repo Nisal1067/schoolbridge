@@ -177,11 +177,39 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    item.subtitle,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF94A3B8),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        item.subtitle,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEFF6FF),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.groups_rounded, size: 15, color: Color(0xFF2563EB)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Audience: ${item.audience}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF1E40AF),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(height: 12),
@@ -239,13 +267,43 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                         color: Color(0xFF1E293B),
                                       ),
                                     ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      item.subtitle,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF64748B),
-                                      ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          item.subtitle,
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                        if (item.audience.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.people_outline_rounded, size: 12, color: Color(0xFF475569)),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  item.audience,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Color(0xFF475569),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 ),

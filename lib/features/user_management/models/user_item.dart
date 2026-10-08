@@ -5,11 +5,20 @@ class UserItem {
   final String name;
   final String email;
   final String phone;
-  final String role; // 'Student', 'Teacher', 'Admin'
+  final String role; // 'Student', 'Teacher', 'Admin', 'Parent'
   final String gradeOrClass; // e.g. 'Grade 10-A', 'Mathematics', 'Administration'
   final String status; // 'Active', 'Inactive'
   final String joinedDate;
   final List<String> parentIds;
+  final String address;
+  final String homePhone;
+  final String dob;
+  final String gender;
+  final String admissionNo;
+  final String nic;
+  final String occupation;
+  final List<String> subjects;
+  final String qualification;
 
   const UserItem({
     required this.id,
@@ -21,6 +30,15 @@ class UserItem {
     this.status = 'Active',
     required this.joinedDate,
     this.parentIds = const [],
+    this.address = '',
+    this.homePhone = '',
+    this.dob = '',
+    this.gender = '',
+    this.admissionNo = '',
+    this.nic = '',
+    this.occupation = '',
+    this.subjects = const [],
+    this.qualification = '',
   });
 
   String get initials {
@@ -37,6 +55,8 @@ class UserItem {
     return role;
   }
 
+  String get subjectsFormatted => subjects.join(', ');
+
   UserItem copyWith({
     String? id,
     String? name,
@@ -47,6 +67,15 @@ class UserItem {
     String? status,
     String? joinedDate,
     List<String>? parentIds,
+    String? address,
+    String? homePhone,
+    String? dob,
+    String? gender,
+    String? admissionNo,
+    String? nic,
+    String? occupation,
+    List<String>? subjects,
+    String? qualification,
   }) {
     return UserItem(
       id: id ?? this.id,
@@ -58,6 +87,15 @@ class UserItem {
       status: status ?? this.status,
       joinedDate: joinedDate ?? this.joinedDate,
       parentIds: parentIds ?? this.parentIds,
+      address: address ?? this.address,
+      homePhone: homePhone ?? this.homePhone,
+      dob: dob ?? this.dob,
+      gender: gender ?? this.gender,
+      admissionNo: admissionNo ?? this.admissionNo,
+      nic: nic ?? this.nic,
+      occupation: occupation ?? this.occupation,
+      subjects: subjects ?? this.subjects,
+      qualification: qualification ?? this.qualification,
     );
   }
 
@@ -71,11 +109,24 @@ class UserItem {
       'role': cleanRole,
       'gradeOrClass': gradeOrClass,
       'class': gradeOrClass,
+      'classId': gradeOrClass,
       'schoolId': 'school01',
       'active': status.toLowerCase() == 'active',
       'status': status,
       'joinedDate': joinedDate,
       'parentIds': parentIds,
+      'address': address,
+      'homePhone': homePhone,
+      'dob': dob,
+      'gender': gender,
+      'admissionNo': admissionNo,
+      'employeeId': admissionNo,
+      'nic': nic,
+      'occupation': occupation,
+      'subjects': subjects,
+      'subject': subjectsFormatted,
+      'qualification': qualification,
+      'qualifications': qualification,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
@@ -118,6 +169,33 @@ class UserItem {
       }
     }
 
+    List<String> parsedSubjects = [];
+    if (map['subjects'] != null) {
+      if (map['subjects'] is List) {
+        parsedSubjects = (map['subjects'] as List).map((e) => e.toString()).toList();
+      } else if (map['subjects'] is String && (map['subjects'] as String).isNotEmpty) {
+        parsedSubjects = (map['subjects'] as String)
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    } else if (map['subject'] != null && map['subject'].toString().isNotEmpty) {
+      parsedSubjects = [map['subject'].toString()];
+    }
+
+    final parsedQualification = (map['qualification'] ??
+            map['qualifications'] ??
+            map['designation'] ??
+            '')
+        .toString();
+
+    final parsedAdmissionNo = (map['admissionNo'] ??
+            map['employeeId'] ??
+            map['indexNo'] ??
+            '')
+        .toString();
+
     return UserItem(
       id: id,
       name: map['name'] ?? map['fullName'] ?? 'User',
@@ -128,6 +206,15 @@ class UserItem {
       status: parsedStatus,
       joinedDate: map['joinedDate'] ?? 'Jan 15, 2026',
       parentIds: parsedParentIds,
+      address: map['address']?.toString() ?? '',
+      homePhone: (map['homePhone'] ?? map['landline'] ?? '')?.toString() ?? '',
+      dob: (map['dob'] ?? map['dateOfBirth'] ?? '')?.toString() ?? '',
+      gender: map['gender']?.toString() ?? '',
+      admissionNo: parsedAdmissionNo,
+      nic: map['nic']?.toString() ?? '',
+      occupation: map['occupation']?.toString() ?? '',
+      subjects: parsedSubjects,
+      qualification: parsedQualification,
     );
   }
 }
