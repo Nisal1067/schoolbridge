@@ -98,14 +98,18 @@ class ChatService {
         for (final student in await attendance.studentsForClass(classroom)) {
           final doc = (await db.collection('students').doc(student['id']).get())
               .data()!;
-          for (final parent in List<String>.from(doc['parentIds'] ?? [])) {
-            result[parent] = {
+          for (final parentId in List<String>.from(doc['parentIds'] ?? [])) {
+            final parentDoc = await db.collection('users').doc(parentId).get();
+            final parentName = parentDoc.exists && parentDoc.data()?['name'] != null
+                ? parentDoc.data()!['name']
+                : 'Parent';
+            result[parentId] = {
               'schoolId': profile['schoolId'],
               'teacherId': uid,
-              'parentId': parent,
+              'parentId': parentId,
               'studentId': student['id'],
               'classId': classroom['id'],
-              'label': '${student['name']} - Parent',
+              'label': '${student['name']}\'s Parent ($parentName)',
             };
           }
         }
@@ -120,15 +124,18 @@ class ChatService {
           if ((classroom['teacherId'] as String? ?? '').isNotEmpty)
             classroom['teacherId'] as String,
         };
-        for (final teacher in teachers) {
-          result[teacher] = {
+        for (final teacherId in teachers) {
+          final teacherDoc = await db.collection('users').doc(teacherId).get();
+          final teacherName = teacherDoc.exists && teacherDoc.data()?['name'] != null
+              ? teacherDoc.data()!['name']
+              : 'Teacher';
+          result[teacherId] = {
             'schoolId': profile['schoolId'],
-            'teacherId': teacher,
+            'teacherId': teacherId,
             'parentId': uid,
             'studentId': child['id'],
             'classId': child['classId'],
-            'label':
-                '${classroom['name']} - Teacher (${teacher.substring(0, teacher.length < 6 ? teacher.length : 6)})',
+            'label': '${classroom['name']} - $teacherName',
           };
         }
       }

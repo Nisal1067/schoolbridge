@@ -58,50 +58,44 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   Widget _buildBottomNavigation() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE8EAF0))),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
       ),
-      child: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: (index) {
+      child: NavigationBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 15,
+        indicatorColor: const Color(0xFFE0E7FF),
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (index) {
           SessionNavigation.remember('teacher', {'index': index});
           setState(() {
             selectedIndex = index;
           });
         },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        selectedItemColor: const Color(0xFF246BFD),
-        unselectedItemColor: const Color(0xFF737B8C),
-        selectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(
+        destinations: const [
+          NavigationDestination(
             icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+            selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.grading_outlined),
-            activeIcon: Icon(Icons.grading),
+            selectedIcon: Icon(Icons.grading),
             label: 'Marks',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             label: 'Tasks',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.fact_check_outlined),
-            activeIcon: Icon(Icons.fact_check),
+            selectedIcon: Icon(Icons.fact_check),
             label: 'Attendance',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.person_outline),
             label: 'Profile',
           ),
@@ -202,13 +196,20 @@ class _TeacherHome extends StatelessWidget {
           const SizedBox(width: 4),
 
           const Expanded(
-            child: Text(
-              'Teacher Dashboard',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF172033),
-              ),
+            child: Row(
+              children: [
+                Icon(Icons.school_rounded, color: Color(0xFF246BFD), size: 28),
+                SizedBox(width: 8),
+                Text(
+                  'SchoolBridge',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF172033),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
             ),
           ),
 

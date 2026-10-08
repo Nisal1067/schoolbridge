@@ -10,6 +10,7 @@ import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 import '../../features/user_communication/communication_screen.dart';
 import '../../features/homework_announcements/parent/parent_homework_announcements_screen.dart';
+import '../../features/profile/parent_profile_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   final int initialIndex;
@@ -37,13 +38,20 @@ class _ParentDashboardState extends State<ParentDashboard> {
         backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Parent Dashboard',
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
-          ),
+        title: const Row(
+          children: [
+            Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+            SizedBox(width: 8),
+            Text(
+              'SchoolBridge',
+              style: TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+                fontSize: 22,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -67,6 +75,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ? const ParentAttendanceScreen(isTab: true)
           : selectedIndex == 3
           ? const CommunicationScreen()
+          : selectedIndex == 4
+          ? const ParentProfileScreen(isTab: true)
           : PlaceholderPage(title: pages[selectedIndex]),
 
       bottomNavigationBar: Theme(
@@ -132,14 +142,14 @@ class _ParentHome extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                  colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                    color: const Color(0xFF7DD3FC).withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -193,18 +203,53 @@ class _ParentHome extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Welcome, $parentName!',
+                            'Welcome,\n$parentName!',
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
                               letterSpacing: -0.5,
+                              height: 1.1,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           const Text(
-                            'Track your child\'s school progress',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                            'Here is your child\'s update\nfor today.',
+                            style: TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 16),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () => onNavigate(4),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: Color(0xFF3B82F6),
+                                      child: Icon(Icons.person, size: 16, color: Colors.white),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Student Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                                        Text('View Details >', style: TextStyle(fontSize: 10, color: Color(0xFF475569))),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       );
@@ -239,23 +284,26 @@ class _ParentHome extends StatelessWidget {
               children: [
                 _buildPremiumCard(
                   title: 'Academic Progress',
-                  subtitle: 'View marks and results',
+                  value: '78%',
                   icon: Icons.bar_chart_rounded,
-                  gradient: const [Color(0xFFF59E0B), Color(0xFFF97316)],
+                  primaryColor: const Color(0xFF2563EB),
+                  backgroundColor: const Color(0xFFDBEAFE),
                   onTap: () => onNavigate(1),
                 ),
                 _buildPremiumCard(
                   title: 'Attendance',
-                  subtitle: 'View student attendance records',
-                  icon: Icons.fact_check_rounded,
-                  gradient: const [Color(0xFF10B981), Color(0xFF059669)],
+                  value: '92%',
+                  icon: Icons.calendar_month_rounded,
+                  primaryColor: const Color(0xFF059669),
+                  backgroundColor: const Color(0xFFD1FAE5),
                   onTap: () => onNavigate(2),
                 ),
                 _buildPremiumCard(
                   title: 'Homework',
-                  subtitle: 'Class announcements and tasks',
-                  icon: Icons.assignment_outlined,
-                  gradient: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                  value: '2 pending',
+                  icon: Icons.edit_document,
+                  primaryColor: const Color(0xFFD97706),
+                  backgroundColor: const Color(0xFFFEF3C7),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -266,84 +314,55 @@ class _ParentHome extends StatelessWidget {
                   },
                 ),
                 _buildPremiumCard(
-                  title: 'Chat',
-                  subtitle: 'Message teachers directly',
-                  icon: Icons.chat_bubble_outline_rounded,
-                  gradient: const [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                  title: 'Messages',
+                  value: '1 new',
+                  icon: Icons.chat_bubble_rounded,
+                  primaryColor: const Color(0xFFDC2626),
+                  backgroundColor: const Color(0xFFFEE2E2),
                   onTap: () => onNavigate(3),
                 ),
               ],
             ),
           ),
 
-          // Profile card full width
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () => onNavigate(4),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF475569), Color(0xFF334155)],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: const [
-                                BoxShadow(color: Color(0x4D334155), blurRadius: 8, offset: Offset(0, 4)),
-                              ],
-                            ),
-                            child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 24),
-                          ),
-                          const SizedBox(width: 16),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Profile',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'View your details & linked students',
-                                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
-                        ],
-                      ),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Recent Announcements',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ParentHomeworkAnnouncementsScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'View All >',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
+          ),
+
+          // Build dummy announcement list items mirroring the mockup
+          SliverList(
+            delegate: SliverChildListDelegate([
+              _buildAnnouncementCard('Term Test Timetable Released', 'The timetable for the upcoming term test is now available.', 'Oct 06, 2026', Icons.campaign_rounded, const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
+              _buildAnnouncementCard('Parent-Teacher Meeting', 'Schedule for the parent-teacher meeting has been published.', 'Oct 04, 2026', Icons.groups_rounded, const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+              _buildAnnouncementCard('Science Project Deadline', 'Final submission date for the science project.', 'Oct 03, 2026', Icons.science_rounded, const Color(0xFF059669), const Color(0xFFECFDF5)),
+              _buildAnnouncementCard('School Holiday Notice', 'School will be closed on October 14 for the special holiday.', 'Oct 01, 2026', Icons.edit_calendar_rounded, const Color(0xFFD97706), const Color(0xFFFFFBEB)),
+              const SizedBox(height: 20),
+            ]),
           ),
         ],
       ),
@@ -352,23 +371,23 @@ class _ParentHome extends StatelessWidget {
 
   Widget _buildPremiumCard({
     required String title,
-    required String subtitle,
+    required String value,
     required IconData icon,
-    required List<Color> gradient,
+    required Color primaryColor,
+    required Color backgroundColor,
     required VoidCallback onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: primaryColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -380,44 +399,102 @@ class _ParentHome extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(color: gradient[1].withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4)),
-                    ],
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 22),
+                    ),
+                    const Spacer(),
+                    Text(
+                      title,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryColor.withAlpha(200)),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            value,
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: primaryColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.chevron_right_rounded, size: 16, color: primaryColor),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                    height: 1.2,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAnnouncementCard(String title, String subtitle, String date, IconData icon, Color primaryColor, Color backgroundColor) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: primaryColor, size: 22),
+        ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              date,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Text(
+            subtitle,
+            style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
       ),
     );
   }

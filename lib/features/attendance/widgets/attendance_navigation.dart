@@ -74,51 +74,57 @@ class AttendanceNavigation extends StatelessWidget {
       border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
     ),
     child: teacherLayout
-        ? BottomNavigationBar(
-            currentIndex: 1,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            selectedItemColor: const Color(0xFF2563EB),
-            unselectedItemColor: const Color(0xFF6B7280),
-            selectedFontSize: 10,
-            unselectedFontSize: 10,
-            onTap: !enabled
-                ? null
-                : (index) {
-                    if (index == 1) {
-                      _navigate(context, 1);
-                      return;
-                    }
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => TeacherDashboard(initialIndex: index),
-                      ),
-                      (_) => false,
-                    );
-                  },
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.menu_book_outlined),
-                label: 'Classes',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.assignment_outlined),
-                label: 'Tasks',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline),
-                label: 'Chat',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                label: 'Profile',
-              ),
-            ],
+        ? Theme(
+            data: Theme.of(context).copyWith(
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+            ),
+            child: NavigationBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              elevation: 15,
+              indicatorColor: const Color(0xFFE0E7FF),
+              selectedIndex: 3, // Since Attendance is index 3 in TeacherDashboard
+              onDestinationSelected: !enabled
+                  ? null
+                  : (index) {
+                      if (index == 3) {
+                        _navigate(context, 1); // Internal index 1 for attendance navigation logic
+                        return;
+                      }
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => TeacherDashboard(initialIndex: index),
+                        ),
+                        (_) => false,
+                      );
+                    },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.grading_outlined),
+                  selectedIcon: Icon(Icons.grading),
+                  label: 'Marks',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.assignment_outlined),
+                  label: 'Tasks',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.fact_check_outlined),
+                  selectedIcon: Icon(Icons.fact_check),
+                  label: 'Attendance',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  label: 'Profile',
+                ),
+              ],
+            ),
           )
         : NavigationBar(
             height: 68,

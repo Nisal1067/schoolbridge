@@ -5,8 +5,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'widgets/attendance_navigation.dart';
-
+import '../../../dashboards/screens/parent_dashboard.dart';
 import 'models/attendance_record.dart';
 import 'widgets/student_attendance_view.dart';
 
@@ -46,7 +45,54 @@ class _ParentAttendanceReportScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      bottomNavigationBar: AttendanceNavigation(),
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        child: NavigationBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 15,
+          indicatorColor: const Color(0xFFE0E7FF),
+          selectedIndex: 2,
+          onDestinationSelected: (index) {
+            if (index == 2) {
+              Navigator.pop(context);
+              return;
+            }
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => ParentDashboard(initialIndex: index)),
+              (route) => false,
+            );
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bar_chart_outlined),
+              label: 'Progress',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.fact_check_outlined),
+              selectedIcon: Icon(Icons.fact_check),
+              label: 'Attendance',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline),
+              label: 'Chat',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
 
       appBar: AppBar(
         backgroundColor: Colors.white,

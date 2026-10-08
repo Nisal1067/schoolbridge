@@ -139,14 +139,28 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF6F7F9),
+    backgroundColor: const Color(0xFFF8FAFC),
     appBar: AppBar(
-      title: const Text('Messages'),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 0,
+      title: const Text(
+        'Messages',
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF0F172A),
+          letterSpacing: -0.5,
+        ),
+      ),
       actions: [
-        IconButton(
-          tooltip: 'Refresh contacts',
-          onPressed: () => setState(() => _contacts = _service.contacts()),
-          icon: const Icon(Icons.refresh),
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: IconButton(
+            tooltip: 'Refresh contacts',
+            onPressed: () => setState(() => _contacts = _service.contacts()),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF4F46E5)),
+          ),
         ),
       ],
     ),
@@ -167,9 +181,12 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text(
-              'Conversations',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+              child: Text(
+                'Conversations',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF1E293B)),
+              ),
             ),
             StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: _preferences,
@@ -235,31 +252,69 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
                         final title = matches.isEmpty
                             ? 'Parent-Teacher Chat'
                             : matches.first['label'] as String;
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.chat_bubble_outline),
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          title: Text(title),
-                          subtitle: Text(
-                            data['lastMessage'] as String,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: IconButton(
-                            tooltip: 'Delete chat for me',
-                            onPressed: _deleting.contains(doc.id)
-                                ? null
-                                : () => _delete(doc.id),
-                            icon: _deleting.contains(doc.id)
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.delete_outline),
-                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 22),
+                            ),
+                            title: Text(
+                              title,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF0F172A)),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                data['lastMessage'] as String,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                              ),
+                            ),
+                            trailing: IconButton(
+                              tooltip: 'Delete chat for me',
+                              onPressed: _deleting.contains(doc.id)
+                                  ? null
+                                  : () => _delete(doc.id),
+                              icon: _deleting.contains(doc.id)
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF4444)),
+                                      ),
+                                    )
+                                  : const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
+                            ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -267,32 +322,55 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
                                   ChatScreen(chatId: doc.id, title: title),
                             ),
                           ),
-                        );
+                        ),
+                      );
                       }).toList(),
                     );
                   },
                 );
               },
             ),
-            const Divider(height: 32),
-            const Text(
-              'Contacts',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            const SizedBox(height: 12),
+            const Divider(height: 32, color: Color(0xFFE2E8F0)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Text(
+                'Contacts',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF1E293B)),
+              ),
             ),
             if (people.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'No linked contacts. Ask your admin to check student parent links and teacher class assignments.',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
                 ),
               ),
             for (final contact in people)
-              ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-                title: Text(contact['label']),
-                trailing: const Icon(Icons.chevron_right),
-                enabled: !_opening,
-                onTap: () => _open(contact),
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Icon(Icons.person_outline_rounded, color: Color(0xFF64748B), size: 20),
+                  ),
+                  title: Text(contact['label'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF334155))),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                  enabled: !_opening,
+                  onTap: () => _open(contact),
+                ),
               ),
             if (_opening) const LinearProgressIndicator(),
           ],

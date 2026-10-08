@@ -107,7 +107,11 @@ service cloud.firestore {
     // SECURITY: users may only update their own profile while role, active
     // and schoolId stay unchanged; only admins can change those.
     match /users/{uid} {
-      allow get: if signedIn() && (request.auth.uid == uid || isActiveAdmin());
+      allow get: if signedIn() && (
+        request.auth.uid == uid || 
+        isActiveAdmin() || 
+        (active() && resource.data.schoolId == userData().schoolId)
+      );
       allow list, create, delete: if isActiveAdmin();
       allow update: if isActiveAdmin() || (signedIn() && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
