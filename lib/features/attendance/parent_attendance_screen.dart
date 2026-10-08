@@ -8,7 +8,8 @@ import 'widgets/student_attendance_view.dart';
 import 'parent_attendance_report_screen.dart';
 
 class ParentAttendanceScreen extends StatefulWidget {
-  const ParentAttendanceScreen({super.key});
+  final bool isTab;
+  const ParentAttendanceScreen({super.key, this.isTab = false});
 
   @override
   State<ParentAttendanceScreen> createState() => _ParentAttendanceScreenState();
@@ -21,13 +22,12 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      bottomNavigationBar: AttendanceNavigation(),
+      bottomNavigationBar: widget.isTab ? null : AttendanceNavigation(),
 
-      appBar: AppBar(
+      appBar: widget.isTab ? null : AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
-
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(
@@ -36,7 +36,6 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
             color: Color(0xFF2F67EA),
           ),
         ),
-
         title: const Text(
           'Attendance',
           style: TextStyle(
@@ -45,12 +44,9 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
             color: Color(0xFF17212F),
           ),
         ),
-
         actions: [
           IconButton(
-            onPressed: () {
-              // Download report functionality later
-            },
+            onPressed: () {},
             icon: const Icon(
               Icons.file_download_outlined,
               color: Color(0xFF2F67EA),
@@ -168,12 +164,19 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
 
   Widget _buildTermSelector() {
     return Container(
-      height: 44,
+      height: 52,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: ListView(
         scrollDirection: Axis.horizontal,
@@ -196,20 +199,22 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
           selectedView = index;
         });
       },
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF2F67EA) : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
+          gradient: selected
+              ? const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF2563EB)])
+              : null,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           title,
           style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
             color: selected ? Colors.white : const Color(0xFF64748B),
           ),
         ),
@@ -224,15 +229,19 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   Widget _buildOverallAttendance(int percentage) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -240,31 +249,30 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
         children: [
           const Text(
             'Overall Attendance',
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white70,
+            ),
           ),
-
-          const SizedBox(height: 4),
-
+          const SizedBox(height: 8),
           Text(
             '$percentage%',
             style: const TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1473E6),
+              fontSize: 48,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -1,
             ),
           ),
-
-          const SizedBox(height: 14),
-
+          const SizedBox(height: 16),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: percentage / 100,
-              minHeight: 7,
-              backgroundColor: const Color(0xFFE8EEF8),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF2F67EA),
-              ),
+              minHeight: 8,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ),
         ],
@@ -283,47 +291,48 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
     required Color color,
   }) {
     return Container(
-      height: 125,
-      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 135),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 19, color: color),
+            child: Icon(icon, size: 22, color: color),
           ),
-
-          const SizedBox(height: 8),
-
+          const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF64748B),
+            ),
           ),
-
-          const SizedBox(height: 3),
-
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF17212F),
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
             ),
           ),
         ],
@@ -336,12 +345,12 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   // ============================================================
 
   Widget _buildReportButton(BuildContext context, String studentId) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {
+    return Container(
+      width: double.infinity,
+      height: 60,
+      margin: const EdgeInsets.only(top: 8),
+      child: ElevatedButton.icon(
+        onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -352,54 +361,23 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
             ),
           );
         },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+        icon: const Icon(Icons.analytics_outlined, size: 22),
+        label: const Text(
+          'View Detailed Report',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF1FF),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: const Icon(
-                  Icons.description_outlined,
-                  size: 19,
-                  color: Color(0xFF2F67EA),
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              const Expanded(
-                child: Text(
-                  'View Attendance Report',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF17212F),
-                  ),
-                ),
-              ),
-
-              const Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: Color(0xFF64748B),
-              ),
-            ],
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF2563EB),
+          elevation: 4,
+          shadowColor: Colors.black.withValues(alpha: 0.05),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
         ),
       ),

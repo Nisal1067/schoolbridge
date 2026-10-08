@@ -151,20 +151,40 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         function chat() { return get(/databases/$(database)/documents/chats/$(chatId)).data; }
+        function validAttachment(data) {
+          return !('attachment' in data) || (
+            data.attachment is map
+            && data.attachment.keys().hasAll(['path', 'name', 'size', 'contentType', 'provider'])
+            && data.attachment.keys().hasOnly(['path', 'name', 'size', 'contentType', 'provider'])
+            && data.attachment.path == 'chats/' + chatId + '/' + request.auth.uid + '/' + messageId + '/attachment'
+            && data.attachment.name is string && data.attachment.name.size() > 0 && data.attachment.name.size() <= 255
+            && data.attachment.size is int && data.attachment.size > 0 && data.attachment.size <= 10 * 1024 * 1024
+            && data.attachment.contentType in ['image/jpeg', 'image/png', 'application/pdf', 'text/plain',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+            && data.attachment.provider == 'cloudinary'
+              && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.state == 'ready'
+              && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.uid == request.auth.uid
+              && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.attachment == data.attachment);
+        }
         allow read: if active() && userData().role in ['teacher', 'parent']
           && request.auth.uid in chat().participantIds;
         allow create: if validChatPair(chat())
           && request.resource.data.keys().hasAll(['senderId', 'text', 'sentAt'])
-          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt'])
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt', 'attachment'])
           && request.resource.data.senderId == request.auth.uid
           && request.resource.data.text is string
-          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000
+          && (request.resource.data.text.size() > 0 || 'attachment' in request.resource.data)
+          && request.resource.data.text.size() <= 2000 && validAttachment(request.resource.data)
           && request.resource.data.sentAt == request.time;
         // Identical retries are safe after an uncertain network acknowledgement.
         allow update: if validChatPair(chat()) && resource.data.senderId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sentAt'])
           && request.resource.data.sentAt == request.time;
         allow delete: if false;
+      }
+      // Only the trusted attachment API may create upload receipts.
+      match /attachmentUploads/{messageId} {
+        allow read, write: if false;
       }
     }
 
