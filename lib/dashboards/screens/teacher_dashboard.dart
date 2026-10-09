@@ -10,7 +10,7 @@ import '../../features/attendance/attendance_screen.dart';
 import '../../features/profile/teacher_profile_screen.dart';
 import '../../auth/services/session_navigation.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
-import '../../features/user_communication/communication_screen.dart';
+import '../../features/user_communication/teacher_chat_fab.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/notifications/models/in_app_notification.dart';
@@ -31,7 +31,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     'Marks',
     'Tasks',
     'Attendance',
-    'Chat',
     'Profile',
   ];
 
@@ -168,10 +167,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   });
                 },
               )
-            : selectedIndex == 5
-            ? const TeacherProfileScreen()
             : selectedIndex == 4
-            ? const CommunicationScreen()
+            ? const TeacherProfileScreen()
             : selectedIndex == 2
             ? const HomeworkAnnouncementsScreen()
             : selectedIndex == 3
@@ -179,6 +176,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             : _PlaceholderPage(title: pages[selectedIndex]),
       ),
 
+      floatingActionButton: const TeacherChatFab(),
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
@@ -220,11 +218,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             icon: Icon(Icons.fact_check_outlined),
             selectedIcon: Icon(Icons.fact_check),
             label: 'Attendance',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chat',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
@@ -397,7 +390,7 @@ class _TeacherHomeState extends State<_TeacherHome> {
                           iconBg: const Color(0xFFFCE7F3),
                           title: 'Messages',
                           subtitle: 'Chats',
-                          onTap: () => widget.onNavigate(4),
+                          onTap: () => openTeacherChat(context),
                         ),
                       ),
                     ],
