@@ -169,7 +169,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 },
               )
             : selectedIndex == 4
-            ? const TeacherProfileScreen()
+            ? const TeacherProfileScreen(isTab: true)
             : selectedIndex == 1
             ? const MarksScreen() // MARKS: Marks tab
             : selectedIndex == 2

@@ -4,7 +4,9 @@ import '../attendance/services/attendance_service.dart';
 import '../user_communication/teacher_chat_fab.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
-  const TeacherProfileScreen({super.key});
+  final bool isTab;
+
+  const TeacherProfileScreen({super.key, this.isTab = false});
   @override
   State<TeacherProfileScreen> createState() => _TeacherProfileScreenState();
 }
@@ -27,19 +29,12 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   Widget _section(String title, Widget content, {IconData? icon}) => Container(
     width: double.infinity,
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(16),
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.03),
-          blurRadius: 15,
-          offset: const Offset(0, 4),
-        ),
-      ],
-      border: Border.all(color: const Color(0xFFF1F5F9)),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,21 +42,14 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         Row(
           children: [
             if (icon != null) ...[
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 18, color: const Color(0xFF4F46E5)),
-              ),
-              const SizedBox(width: 12),
+              Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+              const SizedBox(width: 8),
             ],
             Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF0F172A),
                 letterSpacing: -0.2,
               ),
@@ -78,21 +66,28 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   );
 
   Widget _detail(String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(color: Color(0xFF6B7280)),
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 105,
+          child: Text(
+            label,
+            style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
           ),
-          TextSpan(
-            text: value.isEmpty ? 'Not provided' : value,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        Expanded(
+          child: Text(
+            value.isEmpty ? 'Not provided' : value,
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ],
-      ),
-      style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+        ),
+      ],
     ),
   );
 
@@ -173,20 +168,22 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF8FAFC),
-    appBar: AppBar(
-      backgroundColor: const Color(0xFFF8FAFC),
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      title: const Text(
-        'Teacher Profile',
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF0F172A),
-          letterSpacing: -0.5,
-        ),
-      ),
-    ),
+    appBar: widget.isTab
+        ? null
+        : AppBar(
+            backgroundColor: const Color(0xFFF8FAFC),
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'Teacher Profile',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
     body: FutureBuilder<Map<String, dynamic>>(
       future: _data,
       builder: (context, snapshot) {
@@ -310,29 +307,27 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 ],
                 const SizedBox(height: 24),
                 _section(
-                  'Personal Info',
+                  'Personal Details',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _detail(
-                        'ID Number',
-                        (data['employeeId'] ?? data['uid']).toString(),
-                      ),
                       _detail(
                         'Joined Date',
                         (data['joinedDate'] ?? '').toString(),
                       ),
+                      _detail('Gender', (data['gender'] ?? '').toString()),
+                      _detail('Address', (data['address'] ?? '').toString()),
                     ],
                   ),
-                  icon: Icons.badge_outlined,
+                  icon: Icons.person_outline_rounded,
                 ),
                 _section(
-                  'Contact Info',
+                  'Contact Details',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _detail('Email', (data['email'] ?? '').toString()),
-                      _detail('Phone Number', (data['phone'] ?? '').toString()),
+                      _detail('Phone', (data['phone'] ?? '').toString()),
                     ],
                   ),
                   icon: Icons.contact_mail_outlined,
