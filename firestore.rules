@@ -132,6 +132,21 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    // MARKS: one teacher-entered mark (0-100) per student, class, subject, term.
+    function validMark(data) {
+      let student = get(/databases/$(database)/documents/students/$(data.studentId)).data;
+      return data.keys().hasAll(['studentId', 'studentName', 'classId', 'schoolId', 'teacherId', 'subject', 'term', 'mark', 'updatedAt'])
+        && data.keys().hasOnly(['studentId', 'studentName', 'classId', 'schoolId', 'teacherId', 'subject', 'term', 'mark', 'updatedAt'])
+        && data.teacherId == request.auth.uid
+        && teaches(data.classId, data.schoolId)
+        && student.classId == data.classId && student.schoolId == data.schoolId
+        && data.studentName == student.name
+        && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 60
+        && data.term is int && data.term >= 1 && data.term <= 3
+        && data.mark is int && data.mark >= 0 && data.mark <= 100
+        && data.updatedAt == request.time;
+    }
+
     // ======================================================================
     // Classes, students, users
     // ======================================================================
@@ -260,6 +275,23 @@ service cloud.firestore {
         && request.resource.data.classId == resource.data.classId
         && request.resource.data.schoolId == resource.data.schoolId
         && request.resource.data.date == resource.data.date;
+      allow read: if teaches(resource.data.classId, resource.data.schoolId)
+        || linked(resource.data.studentId, resource.data.schoolId);
+      allow delete: if teaches(resource.data.classId, resource.data.schoolId);
+    }
+
+    // ======================================================================
+    // Marks (teacher writes; linked student/parent can read)
+    // marks/{schoolId_classId_subject_tTerm_studentId}
+    // ======================================================================
+    match /marks/{markId} {
+      allow create: if validMark(request.resource.data);
+      allow update: if validMark(request.resource.data)
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.classId == resource.data.classId
+        && request.resource.data.schoolId == resource.data.schoolId
+        && request.resource.data.subject == resource.data.subject
+        && request.resource.data.term == resource.data.term;
       allow read: if teaches(resource.data.classId, resource.data.schoolId)
         || linked(resource.data.studentId, resource.data.schoolId);
       allow delete: if teaches(resource.data.classId, resource.data.schoolId);

@@ -12,12 +12,22 @@ class AttendanceNavigation extends StatelessWidget {
   final bool enabled;
   final bool teacher;
   final bool teacherLayout;
+  final bool studentLayout;
   const AttendanceNavigation({
     super.key,
     this.enabled = true,
     this.teacher = false,
     this.teacherLayout = false,
+    this.studentLayout = false,
   });
+
+  void _navigateStudent(BuildContext context, int index) {
+    if (!enabled || index == 3) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => StudentDashboard(initialIndex: index)),
+      (_) => false,
+    );
+  }
 
   Future<void> _navigate(BuildContext context, int index) async {
     if (!enabled) return;
@@ -48,7 +58,7 @@ class AttendanceNavigation extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => role == 'teacher'
               ? const AttendanceScreen()
-              : const ParentAttendanceScreen(),
+              : ParentAttendanceScreen(studentLayout: role == 'student'),
         ),
       );
       return;
@@ -73,7 +83,42 @@ class AttendanceNavigation extends StatelessWidget {
       color: Colors.white,
       border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
     ),
-    child: teacherLayout
+    child: studentLayout
+        ? NavigationBar(
+            height: 68,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            indicatorColor: const Color(0xFFE0F2FE),
+            selectedIndex: 3,
+            onDestinationSelected: enabled
+                ? (index) => _navigateStudent(context, index)
+                : null,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.assignment_outlined),
+                label: 'Homework',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.bar_chart_outlined),
+                label: 'Results',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.fact_check_outlined),
+                selectedIcon: Icon(Icons.fact_check),
+                label: 'Attendance',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                label: 'Profile',
+              ),
+            ],
+          )
+        : teacherLayout
         ? Theme(
             data: Theme.of(context).copyWith(
               splashColor: Colors.transparent,
@@ -84,12 +129,16 @@ class AttendanceNavigation extends StatelessWidget {
               surfaceTintColor: Colors.white,
               elevation: 15,
               indicatorColor: const Color(0xFFE0E7FF),
-              selectedIndex: 3, // Since Attendance is index 3 in TeacherDashboard
+              selectedIndex:
+                  3, // Since Attendance is index 3 in TeacherDashboard
               onDestinationSelected: !enabled
                   ? null
                   : (index) {
                       if (index == 3) {
-                        _navigate(context, 1); // Internal index 1 for attendance navigation logic
+                        _navigate(
+                          context,
+                          1,
+                        ); // Internal index 1 for attendance navigation logic
                         return;
                       }
                       Navigator.of(context).pushAndRemoveUntil(

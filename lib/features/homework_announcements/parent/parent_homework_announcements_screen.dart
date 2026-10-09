@@ -14,7 +14,13 @@ import 'parent_homework_tab.dart';
 /// later, swap the Scaffold for a Column and drop the app bar.
 class ParentHomeworkAnnouncementsScreen extends StatefulWidget {
   final int initialTab;
-  const ParentHomeworkAnnouncementsScreen({super.key, this.initialTab = 0});
+  final bool isTab;
+
+  const ParentHomeworkAnnouncementsScreen({
+    super.key,
+    this.initialTab = 0,
+    this.isTab = false,
+  });
 
   @override
   State<ParentHomeworkAnnouncementsScreen> createState() =>
@@ -31,7 +37,7 @@ class _ParentHomeworkAnnouncementsScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TaskColors.background,
-      appBar: taskAppBar('Homework & Announcements'),
+      appBar: widget.isTab ? null : taskAppBar('Homework & Announcements'),
       body: SafeArea(
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _students,

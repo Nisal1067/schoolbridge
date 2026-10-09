@@ -10,6 +10,7 @@ import '../../features/attendance/attendance_screen.dart';
 import '../../features/profile/teacher_profile_screen.dart';
 import '../../auth/services/session_navigation.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
+import '../../features/marks/marks_screen.dart'; // MARKS: new import
 import '../../features/user_communication/teacher_chat_fab.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/notifications/services/notification_service.dart';
@@ -168,7 +169,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 },
               )
             : selectedIndex == 4
-            ? const TeacherProfileScreen()
+            ? const TeacherProfileScreen(isTab: true)
+            : selectedIndex == 1
+            ? const MarksScreen() // MARKS: Marks tab
             : selectedIndex == 2
             ? const HomeworkAnnouncementsScreen()
             : selectedIndex == 3
@@ -240,6 +243,115 @@ class _TeacherHome extends StatefulWidget {
 }
 
 class _TeacherHomeState extends State<_TeacherHome> {
+  void _showAllSchedule() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.72,
+          child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              final rawSchedule = snapshot.data?.data()?['schedule'];
+              final schedule = rawSchedule is List
+                  ? rawSchedule.whereType<Map>().toList()
+                  : <Map>[];
+              final days = [
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+                'Sunday',
+              ];
+              schedule.sort((a, b) {
+                final dayCompare = days
+                    .indexOf(a['day']?.toString() ?? '')
+                    .compareTo(days.indexOf(b['day']?.toString() ?? ''));
+                return dayCompare != 0
+                    ? dayCompare
+                    : (a['time']?.toString() ?? '').compareTo(
+                        b['time']?.toString() ?? '',
+                      );
+              });
+
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'All Schedules',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: snapshot.connectionState == ConnectionState.waiting
+                          ? const Center(child: CircularProgressIndicator())
+                          : schedule.isEmpty
+                          ? const Center(
+                              child: Text('No schedules have been added yet.'),
+                            )
+                          : ListView.separated(
+                              itemCount: schedule.length,
+                              separatorBuilder: (_, index) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final item = schedule[index];
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    side: const BorderSide(
+                                      color: Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  leading: const CircleAvatar(
+                                    backgroundColor: Color(0xFFEEF2FF),
+                                    child: Icon(
+                                      Icons.calendar_month_outlined,
+                                      color: Color(0xFF4F46E5),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    '${item['subject'] ?? 'Subject'} - ${item['className'] ?? 'Class'}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${item['day'] ?? ''} - ${item['time'] ?? ''}${(item['room'] ?? '').toString().isEmpty ? '' : ' - ${item['room']}'}',
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -419,7 +531,7 @@ class _TeacherHomeState extends State<_TeacherHome> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: _showAllSchedule,
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF1E40AF),
                           textStyle: const TextStyle(
@@ -443,9 +555,24 @@ class _TeacherHomeState extends State<_TeacherHome> {
                       final data = snapshot.hasData
                           ? snapshot.data!.data() ?? {}
                           : {};
-                      final schedule = data['schedule'] is List
+                      final allSchedule = data['schedule'] is List
                           ? data['schedule'] as List
-                          : [];
+                          : <dynamic>[];
+                      final today = <String>[
+                        'Monday',
+                        'Tuesday',
+                        'Wednesday',
+                        'Thursday',
+                        'Friday',
+                        'Saturday',
+                        'Sunday',
+                      ][DateTime.now().weekday - 1];
+                      final schedule = allSchedule
+                          .where(
+                            (item) =>
+                                item is Map && item['day']?.toString() == today,
+                          )
+                          .toList();
 
                       if (schedule.isEmpty) {
                         return Container(

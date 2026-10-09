@@ -1,13 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'dart:async';
 
 import '../../auth/widgets/logout_button.dart';
-
 import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
-import '../../features/user_communication/communication_screen.dart';
+// MARKS - Import Parent Progress Screen
+import '../../features/marks/parent/parent_progress_screen.dart';
+import '../../features/user_communication/teacher_chat_fab.dart';
 import '../../features/homework_announcements/parent/parent_homework_announcements_screen.dart';
 import '../../features/profile/parent_profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
@@ -17,33 +19,32 @@ import '../../features/notifications/models/in_app_notification.dart';
 class ParentDashboard extends StatefulWidget {
   final int initialIndex;
   const ParentDashboard({super.key, this.initialIndex = 0});
-
   @override
   State<ParentDashboard> createState() => _ParentDashboardState();
 }
 
 class _ParentDashboardState extends State<ParentDashboard> {
   late int selectedIndex = widget.initialIndex;
-
   final pages = const [
     'Home',
     'Academic Progress',
     'Attendance',
-    'Chat',
+    'Homework',
     'Profile',
   ];
-
   StreamSubscription? _notifSub;
   int _lastNotifCount = 0;
-
   @override
   void initState() {
     super.initState();
     _notifSub = NotificationService().myNotifications.listen((notifications) {
       if (!mounted) return;
       final unreadCount = notifications.where((n) => !n.isRead).length;
-      if (unreadCount > _lastNotifCount && notifications.isNotEmpty && !notifications.first.isRead) {
-        if (_lastNotifCount != 0) { // skip on initial data load
+      if (unreadCount > _lastNotifCount &&
+          notifications.isNotEmpty &&
+          !notifications.first.isRead) {
+        if (_lastNotifCount != 0) {
+          // skip on initial data load
           final newNotif = notifications.first;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -52,10 +53,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
               backgroundColor: const Color(0xFF1E40AF),
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
-                label: 'View', 
+                label: 'View',
                 textColor: Colors.white,
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  );
                 },
               ),
             ),
@@ -100,7 +106,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
           StreamBuilder<List<InAppNotification>>(
             stream: NotificationService().myNotifications,
             builder: (context, snapshot) {
-              final unreadCount = snapshot.data?.where((n) => !n.isRead).length ?? 0;
+              final unreadCount =
+                  snapshot.data?.where((n) => !n.isRead).length ?? 0;
               return Stack(
                 alignment: Alignment.center,
                 children: [
@@ -108,10 +115,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
                       );
                     },
-                    icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF64748B)),
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                   if (unreadCount > 0)
                     Positioned(
@@ -141,7 +153,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
           const SizedBox(width: 8),
         ],
       ),
-
       body: selectedIndex == 0
           ? _ParentHome(
               onNavigate: (index) {
@@ -150,14 +161,17 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 });
               },
             )
+          // MARKS - Show Parent Progress Screen when Progress tab is selected
+          : selectedIndex == 1
+          ? const ParentProgressScreen()
           : selectedIndex == 2
           ? const ParentAttendanceScreen(isTab: true)
           : selectedIndex == 3
-          ? const CommunicationScreen()
+          ? const ParentHomeworkAnnouncementsScreen(isTab: true)
           : selectedIndex == 4
           ? const ParentProfileScreen(isTab: true)
           : PlaceholderPage(title: pages[selectedIndex]),
-
+      floatingActionButton: const TeacherChatFab(),
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
           splashColor: Colors.transparent,
@@ -168,36 +182,37 @@ class _ParentDashboardState extends State<ParentDashboard> {
           surfaceTintColor: Colors.white,
           elevation: 15,
           indicatorColor: const Color(0xFFDBEAFE),
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            label: 'Progress',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.fact_check_outlined),
-            label: 'Attendance',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Chat',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
-      ),
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              selectedIndex = index;
+            });
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bar_chart_outlined),
+              label: 'Progress',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.fact_check_outlined),
+              label: 'Attendance',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.assignment_outlined),
+              selectedIcon: Icon(Icons.assignment),
+              label: 'Homework',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -205,9 +220,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
 class _ParentHome extends StatelessWidget {
   final ValueChanged<int> onNavigate;
-
   const _ParentHome({required this.onNavigate});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -221,14 +234,14 @@ class _ParentHome extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+                  colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF1E40AF).withValues(alpha: 0.26),
+                    color: const Color(0xFF7DD3FC).withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -243,9 +256,10 @@ class _ParentHome extends StatelessWidget {
                       : 'Parent';
                   String fallbackName = user?.displayName ?? defaultEmailName;
                   if (fallbackName.isNotEmpty && !fallbackName.contains(' ')) {
-                    fallbackName = fallbackName[0].toUpperCase() + fallbackName.substring(1);
+                    fallbackName =
+                        fallbackName[0].toUpperCase() +
+                        fallbackName.substring(1);
                   }
-
                   if (user == null) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,19 +276,27 @@ class _ParentHome extends StatelessWidget {
                         const SizedBox(height: 6),
                         const Text(
                           'Track your child\'s school progress',
-                          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     );
                   }
-
                   return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .snapshots(),
                     builder: (context, snapshot) {
                       String parentName = fallbackName;
                       if (snapshot.hasData && snapshot.data!.exists) {
                         final data = snapshot.data!.data();
-                        if (data != null && data['name'] != null && data['name'].toString().trim().isNotEmpty) {
+                        if (data != null &&
+                            data['name'] != null &&
+                            data['name'].toString().trim().isNotEmpty) {
                           parentName = data['name'].toString().trim();
                         }
                       }
@@ -284,7 +306,7 @@ class _ParentHome extends StatelessWidget {
                           Text(
                             'Welcome,\n$parentName!',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: Color(0xFF0F172A),
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0,
@@ -294,7 +316,11 @@ class _ParentHome extends StatelessWidget {
                           const SizedBox(height: 8),
                           const Text(
                             'Here is your child\'s update\nfor today.',
-                            style: TextStyle(color: Color(0xD9FFFFFF), fontSize: 13, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              color: Color(0xFF475569),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           _StudentProfileThumbnail(onTap: () => onNavigate(4)),
@@ -306,7 +332,6 @@ class _ParentHome extends StatelessWidget {
               ),
             ),
           ),
-          
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -320,7 +345,6 @@ class _ParentHome extends StatelessWidget {
               ),
             ),
           ),
-          
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             sliver: SliverGrid.count(
@@ -352,12 +376,7 @@ class _ParentHome extends StatelessWidget {
                   primaryColor: const Color(0xFFD97706),
                   backgroundColor: const Color(0xFFFEF3C7),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ParentHomeworkAnnouncementsScreen(),
-                      ),
-                    );
+                    onNavigate(3);
                   },
                 ),
                 _buildPremiumCard(
@@ -366,12 +385,11 @@ class _ParentHome extends StatelessWidget {
                   icon: Icons.chat_bubble_rounded,
                   primaryColor: const Color(0xFFDC2626),
                   backgroundColor: const Color(0xFFFEE2E2),
-                  onTap: () => onNavigate(3),
+                  onTap: () => openTeacherChat(context),
                 ),
               ],
             ),
           ),
-
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -380,34 +398,74 @@ class _ParentHome extends StatelessWidget {
                 children: [
                   const Text(
                     'Recent Announcements',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ParentHomeworkAnnouncementsScreen(),
+                          builder: (context) =>
+                              const ParentHomeworkAnnouncementsScreen(),
                         ),
                       );
                     },
                     child: const Text(
                       'View All >',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2563EB),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
           // Build dummy announcement list items mirroring the mockup
           SliverList(
             delegate: SliverChildListDelegate([
-              _buildAnnouncementCard(context, 'Term Test Timetable Released', 'The timetable for the upcoming term test is now available.', 'Oct 06, 2026', Icons.campaign_rounded, const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
-              _buildAnnouncementCard(context, 'Parent-Teacher Meeting', 'Schedule for the parent-teacher meeting has been published.', 'Oct 04, 2026', Icons.groups_rounded, const Color(0xFF3B82F6), const Color(0xFFEFF6FF)),
-              _buildAnnouncementCard(context, 'Science Project Deadline', 'Final submission date for the science project.', 'Oct 03, 2026', Icons.science_rounded, const Color(0xFF059669), const Color(0xFFECFDF5)),
-              _buildAnnouncementCard(context, 'School Holiday Notice', 'School will be closed on October 14 for the special holiday.', 'Oct 01, 2026', Icons.edit_calendar_rounded, const Color(0xFFD97706), const Color(0xFFFFFBEB)),
+              _buildAnnouncementCard(
+                context,
+                'Term Test Timetable Released',
+                'The timetable for the upcoming term test is now available.',
+                'Oct 06, 2026',
+                Icons.campaign_rounded,
+                const Color(0xFF2563EB),
+                const Color(0xFFEFF6FF),
+              ),
+              _buildAnnouncementCard(
+                context,
+                'Parent-Teacher Meeting',
+                'Schedule for the parent-teacher meeting has been published.',
+                'Oct 04, 2026',
+                Icons.groups_rounded,
+                const Color(0xFF3B82F6),
+                const Color(0xFFEFF6FF),
+              ),
+              _buildAnnouncementCard(
+                context,
+                'Science Project Deadline',
+                'Final submission date for the science project.',
+                'Oct 03, 2026',
+                Icons.science_rounded,
+                const Color(0xFF059669),
+                const Color(0xFFECFDF5),
+              ),
+              _buildAnnouncementCard(
+                context,
+                'School Holiday Notice',
+                'School will be closed on October 14 for the special holiday.',
+                'Oct 01, 2026',
+                Icons.edit_calendar_rounded,
+                const Color(0xFFD97706),
+                const Color(0xFFFFFBEB),
+              ),
               const SizedBox(height: 20),
             ]),
           ),
@@ -446,51 +504,71 @@ class _ParentHome extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+                const Spacer(),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: primaryColor.withAlpha(200),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: primaryColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: Icon(icon, color: Colors.white, size: 22),
                     ),
-                    const Spacer(),
-                    Text(
-                      title,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryColor.withAlpha(200)),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            value,
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: primaryColor),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.chevron_right_rounded, size: 16, color: primaryColor),
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: primaryColor,
+                      ),
                     ),
                   ],
                 ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAnnouncementCard(BuildContext context, String title, String subtitle, String date, IconData icon, Color primaryColor, Color backgroundColor) {
+  Widget _buildAnnouncementCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String date,
+    IconData icon,
+    Color primaryColor,
+    Color backgroundColor,
+  ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       decoration: BoxDecoration(
@@ -518,7 +596,10 @@ class _ParentHome extends StatelessWidget {
             );
           },
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -533,14 +614,22 @@ class _ParentHome extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Color(0xFF0F172A),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   date,
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -553,7 +642,11 @@ class _ParentHome extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF94A3B8),
+              size: 20,
+            ),
           ),
         ),
       ),
@@ -564,11 +657,13 @@ class _ParentHome extends StatelessWidget {
 class _StudentProfileThumbnail extends StatelessWidget {
   final VoidCallback onTap;
   const _StudentProfileThumbnail({required this.onTap});
-
   Future<Map<String, dynamic>?> _getStudentData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
-    final profileSnap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final profileSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     if (!profileSnap.exists) return null;
     final studentsSnap = await FirebaseFirestore.instance
         .collection('students')
@@ -581,7 +676,10 @@ class _StudentProfileThumbnail extends StatelessWidget {
     return null;
   }
 
-  void _showStudentDetails(BuildContext context, Map<String, dynamic> studentData) {
+  void _showStudentDetails(
+    BuildContext context,
+    Map<String, dynamic> studentData,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -594,7 +692,6 @@ class _StudentProfileThumbnail extends StatelessWidget {
         final phone = studentData['phone'] ?? 'No phone provided';
         final grade = studentData['grade'] ?? studentData['classId'] ?? 'N/A';
         final status = studentData['active'] == false ? 'Inactive' : 'Active';
-
         return Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -630,9 +727,13 @@ class _StudentProfileThumbnail extends StatelessWidget {
               _buildDetailRow(Icons.phone_outlined, phone.toString()),
               const SizedBox(height: 12),
               _buildDetailRow(
-                status == 'Active' ? Icons.check_circle_outline : Icons.cancel_outlined,
+                status == 'Active'
+                    ? Icons.check_circle_outline
+                    : Icons.cancel_outlined,
                 'Status: $status',
-                color: status == 'Active' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                color: status == 'Active'
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFEF4444),
               ),
               const SizedBox(height: 24),
             ],
@@ -642,7 +743,11 @@ class _StudentProfileThumbnail extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String text, {Color color = const Color(0xFF475569)}) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String text, {
+    Color color = const Color(0xFF475569),
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -653,7 +758,9 @@ class _StudentProfileThumbnail extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: color == const Color(0xFF475569) ? const Color(0xFF334155) : color,
+            color: color == const Color(0xFF475569)
+                ? const Color(0xFF334155)
+                : color,
           ),
         ),
       ],
@@ -671,7 +778,9 @@ class _StudentProfileThumbnail extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: studentData != null ? () => _showStudentDetails(context, studentData) : onTap,
+            onTap: studentData != null
+                ? () => _showStudentDetails(context, studentData)
+                : onTap,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -691,8 +800,21 @@ class _StudentProfileThumbnail extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(studentName.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-                      const Text('View Details >', style: TextStyle(fontSize: 10, color: Color(0xFF475569))),
+                      Text(
+                        studentName.toString(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Text(
+                        'View Details >',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
                     ],
                   ),
                 ],
