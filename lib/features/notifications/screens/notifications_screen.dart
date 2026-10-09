@@ -27,7 +27,7 @@ class NotificationsScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all_rounded, color: Color(0xFF4F46E5)),
+            icon: const Icon(Icons.done_all_rounded, color: Color(0xFF1E40AF)),
             tooltip: 'Mark all as read',
             onPressed: () {
               NotificationService().markAllAsRead();
@@ -170,7 +170,7 @@ class NotificationsScreen extends StatelessWidget {
             color: const Color(0xFFF5F3FF),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.campaign_rounded, color: Color(0xFF7C3AED)),
+          child: const Icon(Icons.campaign_rounded, color: Color(0xFF1E40AF)),
         ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -49,7 +49,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             SnackBar(
               content: Text('${newNotif.title}\n${newNotif.body}'),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF4F46E5),
+              backgroundColor: const Color(0xFF1E40AF),
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
                 label: 'View', 
@@ -83,7 +83,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         surfaceTintColor: Colors.transparent,
         title: const Row(
           children: [
-            Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+            Icon(Icons.school_rounded, color: Color(0xFF1E40AF), size: 28),
             SizedBox(width: 8),
             Text(
               'SchoolBridge',
@@ -91,7 +91,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 color: Color(0xFF0F172A),
                 fontWeight: FontWeight.w800,
                 fontSize: 22,
-                letterSpacing: -0.5,
+                letterSpacing: 0,
               ),
             ),
           ],
@@ -167,7 +167,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
           elevation: 15,
-          indicatorColor: const Color(0xFFE0E7FF),
+          indicatorColor: const Color(0xFFDBEAFE),
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
           setState(() {
@@ -221,14 +221,14 @@ class _ParentHome extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+                  colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7DD3FC).withValues(alpha: 0.3),
+                    color: const Color(0xFF1E40AF).withValues(alpha: 0.26),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -256,7 +256,7 @@ class _ParentHome extends StatelessWidget {
                             color: Colors.white,
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
+                            letterSpacing: 0,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -284,17 +284,17 @@ class _ParentHome extends StatelessWidget {
                           Text(
                             'Welcome,\n$parentName!',
                             style: const TextStyle(
-                              color: Color(0xFF0F172A),
+                              color: Colors.white,
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
+                              letterSpacing: 0,
                               height: 1.1,
                             ),
                           ),
                           const SizedBox(height: 8),
                           const Text(
                             'Here is your child\'s update\nfor today.',
-                            style: TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w500),
+                            style: TextStyle(color: Color(0xD9FFFFFF), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 16),
                           _StudentProfileThumbnail(onTap: () => onNavigate(4)),
@@ -405,7 +405,7 @@ class _ParentHome extends StatelessWidget {
           SliverList(
             delegate: SliverChildListDelegate([
               _buildAnnouncementCard(context, 'Term Test Timetable Released', 'The timetable for the upcoming term test is now available.', 'Oct 06, 2026', Icons.campaign_rounded, const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
-              _buildAnnouncementCard(context, 'Parent-Teacher Meeting', 'Schedule for the parent-teacher meeting has been published.', 'Oct 04, 2026', Icons.groups_rounded, const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+              _buildAnnouncementCard(context, 'Parent-Teacher Meeting', 'Schedule for the parent-teacher meeting has been published.', 'Oct 04, 2026', Icons.groups_rounded, const Color(0xFF3B82F6), const Color(0xFFEFF6FF)),
               _buildAnnouncementCard(context, 'Science Project Deadline', 'Final submission date for the science project.', 'Oct 03, 2026', Icons.science_rounded, const Color(0xFF059669), const Color(0xFFECFDF5)),
               _buildAnnouncementCard(context, 'School Holiday Notice', 'School will be closed on October 14 for the special holiday.', 'Oct 01, 2026', Icons.edit_calendar_rounded, const Color(0xFFD97706), const Color(0xFFFFFBEB)),
               const SizedBox(height: 20),

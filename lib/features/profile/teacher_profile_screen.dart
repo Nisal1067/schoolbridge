@@ -53,7 +53,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   color: const Color(0xFFEEF2FF),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 18, color: const Color(0xFF4F46E5)),
+                child: Icon(icon, size: 18, color: const Color(0xFF1E40AF)),
               ),
               const SizedBox(width: 12),
             ],
@@ -63,7 +63,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF0F172A),
-                letterSpacing: -0.2,
+                letterSpacing: 0,
               ),
             ),
           ],
@@ -183,7 +183,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           fontSize: 22,
           fontWeight: FontWeight.w800,
           color: Color(0xFF0F172A),
-          letterSpacing: -0.5,
+          letterSpacing: 0,
         ),
       ),
     ),
@@ -230,7 +230,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+                          color: const Color(0xFF1E40AF).withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -243,7 +243,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                           ? Text(
                               initials,
                               style: const TextStyle(
-                                color: Color(0xFF4F46E5),
+                                color: Color(0xFF1E40AF),
                                 fontWeight: FontWeight.w800,
                                 fontSize: 26,
                               ),
@@ -269,7 +269,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
-                    letterSpacing: -0.4,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -300,7 +300,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       child: Text(
                         data['designation'] as String,
                         style: const TextStyle(
-                          color: Color(0xFF4F46E5),
+                          color: Color(0xFF1E40AF),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -358,7 +358,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF4F46E5).withValues(alpha: 0.25),
+                        color: const Color(0xFF1E40AF).withValues(alpha: 0.25),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -375,7 +375,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       ),
                     ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF4F46E5),
+                      backgroundColor: const Color(0xFF1E40AF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

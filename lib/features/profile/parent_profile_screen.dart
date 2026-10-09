@@ -48,7 +48,7 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+              Icon(icon, size: 20, color: const Color(0xFF1E40AF)),
               const SizedBox(width: 8),
             ],
             Text(
@@ -117,9 +117,9 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
+                      gradient: const LinearGradient(colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)]),
                       boxShadow: [
-                        BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6)),
+                        BoxShadow(color: const Color(0xFF1E40AF).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6)),
                       ],
                     ),
                     child: CircleAvatar(
@@ -128,7 +128,7 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
                       child: Text(
                         initials,
                         style: const TextStyle(
-                          color: Color(0xFF4F46E5),
+                          color: Color(0xFF1E40AF),
                           fontWeight: FontWeight.bold,
                           fontSize: 28,
                         ),

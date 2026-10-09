@@ -91,7 +91,7 @@ class _HomeworkAnnouncementsScreenState
                     onTap: _tab == 0 ? _addHomework : _addAnnouncement,
                     child: Text(
                       _tab == 0 ? '+ Add Homework' : '+ Add Announcement',
-                      style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 15, fontWeight: FontWeight.w700),
+                      style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -155,9 +155,9 @@ class _HomeworkAnnouncementsScreenState
                     _announcementFilter = i;
                   }
                 }),
-                selectedColor: const Color(0xFF4F46E5),
+                selectedColor: const Color(0xFF1E40AF),
                 backgroundColor: Colors.white,
-                side: BorderSide(color: selected == i ? const Color(0xFF4F46E5) : const Color(0xFFE2E8F0)),
+                side: BorderSide(color: selected == i ? const Color(0xFF1E40AF) : const Color(0xFFE2E8F0)),
                 labelStyle: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -429,7 +429,7 @@ class _HomeworkCard extends StatelessWidget {
                   color: TaskColors.blueSoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.menu_book_outlined, color: Color(0xFF4F46E5)),
+                child: const Icon(Icons.menu_book_outlined, color: Color(0xFF1E40AF)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -440,7 +440,7 @@ class _HomeworkCard extends StatelessWidget {
                       homework.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: 0),
                     ),
                     const SizedBox(height: 4),
                     Row(
