@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../auth/widgets/logout_button.dart';
 
 import '../../features/attendance/attendance_screen.dart';
+import '../../features/attendance/services/attendance_service.dart';
 import '../../features/profile/teacher_profile_screen.dart';
 import '../../auth/services/session_navigation.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
@@ -105,10 +106,28 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 }
 
-class _TeacherHome extends StatelessWidget {
+class _TeacherHome extends StatefulWidget {
   final ValueChanged<int> onNavigate;
 
   const _TeacherHome({required this.onNavigate});
+
+  @override
+  State<_TeacherHome> createState() => _TeacherHomeState();
+}
+
+class _TeacherHomeState extends State<_TeacherHome> {
+  final _attendance = AttendanceService();
+  late final Future<String> _teacherName = _loadTeacherName();
+
+  Future<String> _loadTeacherName() async {
+    try {
+      final profile = await _attendance.profile();
+      final name = profile['name']?.toString().trim() ?? '';
+      return name.isEmpty ? 'Teacher' : name;
+    } catch (_) {
+      return 'Teacher';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,47 +264,50 @@ class _TeacherHome extends StatelessWidget {
   }
 
   Widget _buildWelcomeCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFDCEAFF),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: const Row(
-        children: [
-          CircleAvatar(
-            radius: 23,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.person, color: Color(0xFF246BFD)),
-          ),
-
-          SizedBox(width: 13),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hello, Mrs. Nadeesha!',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF246BFD),
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Have a great day of teaching!',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6F7787)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return FutureBuilder<String>(
+      future: _teacherName,
+      builder: (context, snapshot) => _welcomeCard(snapshot.data ?? 'Teacher'),
     );
   }
+
+  Widget _welcomeCard(String teacherName) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: const Color(0xFFDCEAFF),
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Row(
+      children: [
+        const CircleAvatar(
+          radius: 23,
+          backgroundColor: Colors.white,
+          child: Icon(Icons.person, color: Color(0xFF246BFD)),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hello, $teacherName!',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF246BFD),
+                ),
+              ),
+              const SizedBox(height: 3),
+              const Text(
+                'Have a great day of teaching!',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6F7787)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildQuickActions(BuildContext context) {
     return Column(
@@ -299,7 +321,7 @@ class _TeacherHome extends StatelessWidget {
                 iconBackground: const Color(0xFFE3EDFF),
                 title: 'Marks',
                 subtitle: 'Results & Grades',
-                onTap: () => onNavigate(1),
+                onTap: () => widget.onNavigate(1),
               ),
             ),
 
@@ -312,7 +334,7 @@ class _TeacherHome extends StatelessWidget {
                 iconBackground: const Color(0xFFFFF2D7),
                 title: 'Homeworks',
                 subtitle: '5 Pending',
-                onTap: () => onNavigate(2),
+                onTap: () => widget.onNavigate(2),
               ),
             ),
           ],
@@ -329,7 +351,7 @@ class _TeacherHome extends StatelessWidget {
                 iconBackground: const Color(0xFFDDF8EE),
                 title: 'Attendance',
                 subtitle: '100% Tracked',
-                onTap: () => onNavigate(3),
+                onTap: () => widget.onNavigate(3),
               ),
             ),
 
