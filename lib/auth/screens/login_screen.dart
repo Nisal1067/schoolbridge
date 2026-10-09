@@ -78,7 +78,9 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(error.message),
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } on AuthException catch (error) {
@@ -88,7 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(error.message),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } catch (e) {
@@ -98,7 +102,9 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text('Login failed: ${e.toString()}'),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } finally {
@@ -118,7 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             title: Row(
               children: [
@@ -128,7 +136,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 24),
+                  child: const Icon(
+                    Icons.lock_reset_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -150,13 +162,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Text(
                     'Enter your registered email address and we will send you a secure password reset link.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
                   // Selected role hint
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
@@ -164,11 +183,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.person_outline, size: 14, color: Color(0xFF475569)),
+                        const Icon(
+                          Icons.person_outline,
+                          size: 14,
+                          color: Color(0xFF475569),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Target Role: ${selectedRole.displayName}',
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF475569),
+                          ),
                         ),
                       ],
                     ),
@@ -177,7 +204,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const Text(
                     'Account Email',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -199,9 +230,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                     ),
                   ),
 
@@ -216,12 +253,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 16),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFEF4444),
+                            size: 16,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               resetError!,
-                              style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444)),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFEF4444),
+                              ),
                             ),
                           ),
                         ],
@@ -234,7 +278,10 @@ class _LoginScreenState extends State<LoginScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Color(0xFF64748B)),
+                ),
               ),
               ElevatedButton(
                 onPressed: isSubmitting
@@ -242,7 +289,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     : () async {
                         final email = resetEmailController.text.trim();
                         if (email.isEmpty) {
-                          setDialogState(() => resetError = 'Please enter an email address.');
+                          setDialogState(
+                            () => resetError = 'Please enter an email address.',
+                          );
                           return;
                         }
 
@@ -275,16 +324,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: isSubmitting
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Text('Send Reset Link', style: TextStyle(fontWeight: FontWeight.bold)),
+                    : const Text(
+                        'Send Reset Link',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
               ),
             ],
           );
@@ -329,7 +389,11 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               'A password reset link has been dispatched to $email. Please check your inbox (and spam folder) to set a new password.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -341,9 +405,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Done',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -358,13 +427,9 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF8FAFC),
-              Color(0xFFEFF6FF),
-              Color(0xFFDBEAFE),
-            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF7FAFF), Color(0xFFEAF1FF), Color(0xFFDCE9FF)],
           ),
         ),
         child: SafeArea(
@@ -386,9 +451,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         border: Border.all(color: Colors.white, width: 1.4),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0F172A).withValues(
-                              alpha: 0.08,
-                            ),
+                            color: const Color(0xFF0F172A)
+                                .withValues(alpha: 0.08),
                             blurRadius: 30,
                             offset: const Offset(0, 18),
                           ),
@@ -398,34 +462,42 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Sign in',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            selectedRole == UserRole.admin
+                                ? 'Admin sign in'
+                                : 'Sign in',
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(fontSize: 24),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
-                            'Choose your role and continue to your workspace.',
-                            style: TextStyle(
+                          Text(
+                            selectedRole == UserRole.admin
+                                ? 'Securely access your school management workspace.'
+                                : 'Choose your role and continue to your workspace.',
+                            style: const TextStyle(
                               color: AppColors.textGrey,
                               fontWeight: FontWeight.w500,
+                              height: 1.35,
                             ),
                           ),
                           const SizedBox(height: 20),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
+                          Row(
                             children: UserRole.values
                                 .map(
-                                  (role) => _RoleButton(
-                                    role: role,
-                                    selected: selectedRole == role,
-                                    onTap: () {
-                                      setState(() {
-                                        selectedRole = role;
-                                      });
-                                    },
+                                  (role) => Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        right: role == UserRole.admin ? 0 : 8,
+                                      ),
+                                      child: _RoleButton(
+                                        role: role,
+                                        selected: selectedRole == role,
+                                        onTap: () {
+                                          setState(() {
+                                            selectedRole = role;
+                                          });
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 )
                                 .toList(),
@@ -446,8 +518,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             obscureText: hidePassword,
                             decoration: InputDecoration(
                               labelText: 'Password',
-                              prefixIcon:
-                                  const Icon(Icons.lock_outline_rounded),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                              ),
                               suffixIcon: IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -581,7 +654,7 @@ class _RoleButton extends StatelessWidget {
         return Icons.menu_book_outlined;
 
       case UserRole.admin:
-        return Icons.settings_outlined;
+        return Icons.admin_panel_settings_outlined;
     }
   }
 
@@ -589,23 +662,45 @@ class _RoleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(15),
       child: Container(
-        width: 92,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        height: 76,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFDBEAFE) : AppColors.surfaceSoft,
-          borderRadius: BorderRadius.circular(16),
+          color: selected
+              ? (role == UserRole.admin
+                    ? const Color(0xFFE0E7FF)
+                    : const Color(0xFFDBEAFE))
+              : Colors.white,
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected
+                ? (role == UserRole.admin
+                      ? const Color(0xFF4F46E5)
+                      : AppColors.primary)
+                : const Color(0xFFE2E8F0),
+            width: selected ? 1.4 : 1,
           ),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x140F3DBD),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           children: [
             Icon(
               icon,
               size: 21,
-              color: selected ? AppColors.primaryDark : AppColors.textGrey,
+              color: selected
+                  ? (role == UserRole.admin
+                        ? const Color(0xFF3730A3)
+                        : AppColors.primaryDark)
+                  : AppColors.textGrey,
             ),
 
             const SizedBox(height: 6),
@@ -615,7 +710,11 @@ class _RoleButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                color: selected ? AppColors.primaryDark : AppColors.textGrey,
+                color: selected
+                    ? (role == UserRole.admin
+                          ? const Color(0xFF3730A3)
+                          : AppColors.primaryDark)
+                    : AppColors.textGrey,
               ),
             ),
           ],
