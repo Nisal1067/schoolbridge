@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/student_homework.dart';
 import '../services/student_homework_service.dart';
 import '../widgets/task_widgets.dart';
+import '../../notifications/screens/notifications_screen.dart';
 import 'student_announcements_screen.dart';
 import 'student_homework_detail_screen.dart';
 
@@ -37,9 +38,15 @@ class StudentHomeworkScreen extends StatefulWidget {
 class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
   final _service = StudentHomeworkService();
   late final Future<Map<String, dynamic>> _student = _service.studentRecord();
-  late final Stream<List<StudentHomework>> _homework = _service
-      .watchMyHomework();
+  late Stream<List<StudentHomework>> _homework;
+  bool _showAnnouncements = false;
   bool _showAll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _homework = _service.watchMyHomework();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,30 +56,32 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
         children: [
           _header(),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: StreamBuilder<List<StudentHomework>>(
-                stream: _homework,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return _Message(
-                      friendlyError(
-                        snapshot.error!,
-                        'Could not load homework. Please try again.',
-                        operation: 'read',
-                      ),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 60),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  return _content(snapshot.data!);
-                },
-              ),
-            ),
+            child: _showAnnouncements
+                ? const StudentAnnouncementsContent()
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    child: StreamBuilder<List<StudentHomework>>(
+                      stream: _homework,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return _Message(
+                            friendlyError(
+                              snapshot.error!,
+                              'Could not load homework. Please try again.',
+                              operation: 'read',
+                            ),
+                          );
+                        }
+                        if (!snapshot.hasData) {
+                          return const Padding(
+                            padding: EdgeInsets.only(top: 60),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        return _content(snapshot.data!);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -82,51 +91,107 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: TaskColors.blue,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.school, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Homework',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: TaskColors.ink,
+                  ),
+                ),
+              ),
+              Material(
+                color: Colors.white,
+                shape: const CircleBorder(
+                  side: BorderSide(color: TaskColors.border),
+                ),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const NotificationsScreen(onlyNotifications: true),
+                    ),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.notifications_none_rounded,
+                      color: TaskColors.blue,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _sectionSwitcher(),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionSwitcher() {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: TaskColors.border),
+      ),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: TaskColors.blue,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.school, color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Homework',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: TaskColors.ink,
-              ),
-            ),
-          ),
-          Material(
-            color: Colors.white,
-            shape: const CircleBorder(
-              side: BorderSide(color: TaskColors.border),
-            ),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const StudentAnnouncementsScreen(),
-                ),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  color: TaskColors.blue,
-                ),
-              ),
-            ),
-          ),
+          _switcherItem('Homework', !_showAnnouncements, () {
+            setState(() {
+              _homework = _service.watchMyHomework();
+              _showAnnouncements = false;
+            });
+          }),
+          _switcherItem('Announcements', _showAnnouncements, () {
+            setState(() => _showAnnouncements = true);
+          }),
         ],
+      ),
+    );
+  }
+
+  Widget _switcherItem(String label, bool selected, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? TaskColors.blue : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : TaskColors.grey,
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
       ),
     );
   }

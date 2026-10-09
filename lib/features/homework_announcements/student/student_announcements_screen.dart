@@ -25,18 +25,12 @@ bool _isNew(Announcement a) =>
     DateTime.now().difference(a.publishAt).inHours < 24;
 
 ({Color fg, Color bg}) _priorityColors(AnnouncementPriority p) => switch (p) {
-  AnnouncementPriority.urgent => (
-    fg: TaskColors.red,
-    bg: TaskColors.redSoft,
-  ),
+  AnnouncementPriority.urgent => (fg: TaskColors.red, bg: TaskColors.redSoft),
   AnnouncementPriority.important => (
     fg: TaskColors.amber,
     bg: TaskColors.amberSoft,
   ),
-  AnnouncementPriority.normal => (
-    fg: TaskColors.blue,
-    bg: TaskColors.blueSoft,
-  ),
+  AnnouncementPriority.normal => (fg: TaskColors.blue, bg: TaskColors.blueSoft),
 };
 
 /// Announcements sent to the student's class or to all students.
@@ -200,7 +194,10 @@ class _StudentAnnouncementsScreenState
 /// Full announcement page, based on the Figma "announcement-detail" frame.
 class StudentAnnouncementDetailScreen extends StatelessWidget {
   final Announcement announcement;
-  const StudentAnnouncementDetailScreen({super.key, required this.announcement});
+  const StudentAnnouncementDetailScreen({
+    super.key,
+    required this.announcement,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -297,6 +294,154 @@ class _Message extends StatelessWidget {
           text,
           textAlign: TextAlign.center,
           style: const TextStyle(color: TaskColors.grey, fontSize: 15),
+        ),
+      ),
+    );
+  }
+}
+
+/// Announcement list used by the Homework/Announcements switcher.
+class StudentAnnouncementsContent extends StatefulWidget {
+  const StudentAnnouncementsContent({super.key});
+
+  @override
+  State<StudentAnnouncementsContent> createState() =>
+      _StudentAnnouncementsContentState();
+}
+
+class _StudentAnnouncementsContentState
+    extends State<StudentAnnouncementsContent> {
+  final _service = StudentHomeworkService();
+  late final Stream<List<Announcement>> _stream = _service
+      .watchMyAnnouncements();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Announcement>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              friendlyError(
+                snapshot.error!,
+                'Could not load announcements. Please try again.',
+              ),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: TaskColors.grey),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final items = snapshot.data!.where((a) => !a.isScheduled).toList();
+        if (items.isEmpty) {
+          return const Center(
+            child: Text(
+              'No announcements yet.',
+              style: TextStyle(color: TaskColors.grey),
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            const Text(
+              'Latest Updates',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: TaskColors.ink,
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final item in items) _StudentAnnouncementRow(item: item),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _StudentAnnouncementRow extends StatelessWidget {
+  final Announcement item;
+
+  const _StudentAnnouncementRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _priorityColors(item.priority);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: TaskColors.border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => StudentAnnouncementDetailScreen(announcement: item),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: colors.bg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  item.priority == AnnouncementPriority.urgent
+                      ? Icons.priority_high_rounded
+                      : Icons.campaign_outlined,
+                  color: colors.fg,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: TaskColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: TaskColors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _timeAgo(item.publishAt),
+                style: const TextStyle(fontSize: 11, color: TaskColors.grey),
+              ),
+            ],
+          ),
         ),
       ),
     );
