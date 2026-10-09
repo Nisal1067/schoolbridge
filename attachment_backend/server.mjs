@@ -12,17 +12,21 @@ import { assigned, maxBytes, member, types } from './policy.mjs';
 
 initializeApp({ credential: applicationDefault(), projectId: process.env.FIREBASE_PROJECT_ID || 'schoolbridge-7ade3' });
 const db = getFirestore();
-cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET, secure: true });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET, secure: true
+});
 const configured = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'].every(k => process.env[k]);
 export const app = express();
 app.disable('x-powered-by');
 const origins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
-app.use(cors({ origin(origin, callback) {
-  let local = false;
-  try { local = ['localhost', '127.0.0.1'].includes(new URL(origin).hostname); } catch { /* Not a browser origin. */ }
-  callback(null, !origin || origins.includes(origin) || (process.env.NODE_ENV !== 'production' && local));
-}, allowedHeaders: ['Authorization', 'Content-Type'], methods: ['GET', 'POST', 'DELETE'] }));
+app.use(cors({
+  origin(origin, callback) {
+    let local = false;
+    try { local = ['localhost', '127.0.0.1'].includes(new URL(origin).hostname); } catch { /* Not a browser origin. */ }
+    callback(null, !origin || origins.includes(origin) || (process.env.NODE_ENV !== 'production' && local));
+  }, allowedHeaders: ['Authorization', 'Content-Type'], methods: ['GET', 'POST', 'DELETE']
+}));
 app.get('/health', (_, res) => res.json({ status: 'ok', attachmentsConfigured: configured }));
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: maxBytes, files: 1, fields: 0, parts: 1 } });
@@ -67,8 +71,10 @@ async function authorizeProfile(req, res, next) {
 
 const route = '/chats/:chatId/attachments/:messageId';
 app.use('/chats', rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false }));
-const uploadLimit = rateLimit({ windowMs: 300_000, limit: 10,
-  keyGenerator: req => req.uid, standardHeaders: 'draft-8', legacyHeaders: false });
+const uploadLimit = rateLimit({
+  windowMs: 300_000, limit: 10,
+  keyGenerator: req => req.uid, standardHeaders: 'draft-8', legacyHeaders: false
+});
 
 app.post(route, authorize, uploadLimit, upload.single('file'), async (req, res) => {
   const file = req.file;
@@ -90,8 +96,10 @@ app.post(route, authorize, uploadLimit, upload.single('file'), async (req, res) 
   ]);
   if (!assigned(req.chat, ...context.map(d => d.data()))) throw fail(403, 'Teacher assignment or parent link is no longer valid.');
   const digest = createHash('sha256').update(file.buffer).digest('hex');
-  const descriptor = { provider: 'cloudinary', path: `chats/${req.params.chatId}/${req.uid}/${req.params.messageId}/attachment`,
-    name, size: file.size, contentType: types[extension] };
+  const descriptor = {
+    provider: 'cloudinary', path: `chats/${req.params.chatId}/${req.uid}/${req.params.messageId}/attachment`,
+    name, size: file.size, contentType: types[extension]
+  };
   const publicId = `schoolbridge/${createHash('sha256').update(descriptor.path).digest('hex')}.${extension}`;
   const existing = await db.runTransaction(async tx => {
     const [record, message] = await Promise.all([tx.get(req.record), tx.get(req.message)]);
@@ -99,15 +107,19 @@ app.post(route, authorize, uploadLimit, upload.single('file'), async (req, res) 
     if (previous?.state === 'ready' && previous.uid === req.uid && previous.digest === digest && previous.attachment.name === name) return previous;
     if (message.exists) throw fail(409, 'This message has already been sent.');
     if (previous) throw fail(409, 'This upload is already pending. Retry later or remove the draft.');
-    tx.create(req.record, { uid: req.uid, state: 'uploading', digest, publicId, extension,
-      attachment: descriptor, createdAt: FieldValue.serverTimestamp() });
+    tx.create(req.record, {
+      uid: req.uid, state: 'uploading', digest, publicId, extension,
+      attachment: descriptor, createdAt: FieldValue.serverTimestamp()
+    });
     return null;
   });
   if (existing) return res.json(existing.attachment);
   try {
     const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream({ resource_type: 'raw', type: 'private', public_id: publicId,
-        overwrite: false, timeout: 60000 }, (error, result) => error ? reject(error) : resolve(result)).end(file.buffer);
+      cloudinary.uploader.upload_stream({
+        resource_type: 'raw', type: 'private', public_id: publicId,
+        overwrite: false, timeout: 60000
+      }, (error, result) => error ? reject(error) : resolve(result)).end(file.buffer);
     });
     if (result.bytes !== file.size || result.type !== 'private') throw Error('Unexpected attachment provider response.');
     await req.record.update({ state: 'ready' });
@@ -221,7 +233,7 @@ app.use((error, req, res, next) => {
 });
 if (process.env.NODE_ENV !== 'test') {
   const port = Number(process.env.PORT || 8081);
-  const host = process.env.HOST || '127.0.0.1';
+  const host = process.env.HOST || '0.0.0.0';
   const server = app.listen(port, host, () => {
     console.log(`Attachment API listening on http://${host}:${port}; Cloudinary configured: ${!!configured}`);
   });
