@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-
-import '../user_communication/chat_attachment_api.dart';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 class ProfilePhotoException implements Exception {
   final String message;
@@ -17,31 +17,11 @@ class ProfilePhotoException implements Exception {
 }
 
 class ProfilePhotoService {
-  static const maxBytes = 3 * 1024 * 1024;
+  static const maxBytes = 3 * 1024 * 1024; // 3 MB
 
-  static Uri get _endpoint {
-    final base = Uri.parse(ChatAttachmentApi.baseUrl);
-    final local = ['localhost', '127.0.0.1', '10.0.2.2'].contains(base.host);
-    if (base.scheme != 'https' && !(local && base.scheme == 'http')) {
-      throw const ProfilePhotoException(
-        'Profile photo API must use HTTPS outside local development.',
-      );
-    }
-    return base.replace(
-      pathSegments: [
-        ...base.pathSegments.where((segment) => segment.isNotEmpty),
-        'profile-photo',
-      ],
-    );
-  }
-
-  static Future<String> _token() async {
-    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-    if (token == null) {
-      throw const ProfilePhotoException('Sign in to update your profile photo.');
-    }
-    return token;
-  }
+  static const _cloudName = 'mkbiqlpk';
+  static const _apiKey = '435597969727599';
+  static const _apiSecret = '3t7L-J8H-QyuYit8MExLS92W910';
 
   static String? validate(String name, int size) {
     final extension = name.split('.').last.toLowerCase();
@@ -54,10 +34,15 @@ class ProfilePhotoService {
   }
 
   static Future<void> pickAndUpload() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw const ProfilePhotoException('Sign in to update your profile photo.');
+    }
+
     final image = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      maxWidth: 1200,
-      maxHeight: 1200,
+      maxWidth: 512,
+      maxHeight: 512,
       imageQuality: 88,
     );
     if (image == null) return;
@@ -67,54 +52,68 @@ class ProfilePhotoService {
     final error = validate(fileName, bytes.length);
     if (error != null) throw ProfilePhotoException(error);
 
-    final client = http.Client();
     try {
-      final request = http.MultipartRequest('POST', _endpoint)
-        ..headers['Authorization'] = 'Bearer ${await _token()}'
-        ..files.add(
-          http.MultipartFile.fromBytes('file', bytes, filename: fileName),
-        );
+      final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
+      final publicId = 'schoolbridge/profile-photos/${user.uid}';
+      
+      // Compute Cloudinary signature
+      final strToSign = 'public_id=$publicId&timestamp=$timestamp$_apiSecret';
+      final bytesToSign = utf8.encode(strToSign);
+      final signature = sha1.convert(bytesToSign).toString();
+
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/image/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['api_key'] = _apiKey
+        ..fields['timestamp'] = timestamp
+        ..fields['public_id'] = publicId
+        ..fields['signature'] = signature
+        ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
+
+      final client = http.Client();
       final response = await http.Response.fromStream(
-        await client.send(request).timeout(const Duration(seconds: 90)),
+        await client.send(request).timeout(const Duration(seconds: 90))
       );
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        var message =
-            'Profile photo upload failed (${response.statusCode}). Restart attachment_backend.';
-        try {
-          message =
-              (jsonDecode(response.body) as Map)['error'] as String? ??
-              message;
-        } catch (_) {
-          // Non-JSON server response.
-        }
-        throw ProfilePhotoException(message);
+      client.close();
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final url = decoded['secure_url'];
+
+        // Update Firestore user profile
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'photoProvider': 'cloudinary',
+          'photoUrl': url,
+          'photoPublicId': publicId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        throw Exception('Cloudinary error: ${response.body}');
       }
     } on TimeoutException {
-      throw const ProfilePhotoException(
-        'Profile photo server is not responding. Check attachment_backend.',
-      );
-    } on http.ClientException {
-      throw const ProfilePhotoException(
-        'Profile photo server is not reachable. Start attachment_backend and try again.',
-      );
-    } finally {
-      client.close();
+      throw const ProfilePhotoException('Upload timed out. Check your internet connection.');
+    } catch (e) {
+      throw ProfilePhotoException('Could not upload profile photo. Try again later.');
     }
   }
 
   static Future<Uint8List?> load() async {
-    final client = http.Client();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    
     try {
-      final response = await client
-          .get(_endpoint, headers: {'Authorization': 'Bearer ${await _token()}'})
-          .timeout(const Duration(seconds: 45));
-      if (response.statusCode == 404) return null;
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw const ProfilePhotoException('Could not load profile photo.');
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!doc.exists) return null;
+      
+      final url = doc.data()?['photoUrl'] as String?;
+      if (url == null || url.isEmpty) return null;
+
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 45));
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
       }
-      return response.bodyBytes;
-    } finally {
-      client.close();
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }

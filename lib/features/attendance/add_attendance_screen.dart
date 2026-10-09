@@ -376,9 +376,9 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
               icon: const Icon(Icons.check_rounded),
             ),
           ],
-          title: Text(
-            'Marks & Attendance',
-            style: const TextStyle(
+          title: const Text(
+            'Add Attendance',
+            style: TextStyle(
               color: Color(0xFF17212F),
               fontSize: 19,
               fontWeight: FontWeight.w700,
@@ -393,52 +393,7 @@ class _AddAttendanceScreenState extends State<AddAttendanceScreen> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                      child: Container(
-                        height: 44,
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          children: [
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  'Marks',
-                                  style: TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF2563EB),
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(6),
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Attendance',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: Container(
                         height: 46,
                         decoration: BoxDecoration(
