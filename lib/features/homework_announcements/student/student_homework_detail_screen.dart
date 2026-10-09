@@ -356,7 +356,11 @@ class _StudentHomeworkDetailScreenState
       setState(() => _saving = false);
       showTaskSnack(
         context,
-        friendlyError(e, 'Could not submit homework. Please try again.'),
+        friendlyError(
+          e,
+          'Could not submit homework. Please try again.',
+          operation: 'submission',
+        ),
       );
     }
   }
