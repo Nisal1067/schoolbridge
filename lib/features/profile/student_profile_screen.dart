@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../attendance/services/attendance_service.dart';
+import 'profile_photo_avatar.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   final bool isTab;
@@ -134,17 +135,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
               children: [
                 Center(
-                  child: CircleAvatar(
-                    radius: 44,
-                    backgroundColor: const Color(0xFFE0E7FF),
-                    child: Text(
-                      initials.isEmpty ? 'S' : initials,
-                      style: const TextStyle(
-                        color: Color(0xFF4338CA),
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                  child: ProfilePhotoAvatar(
+                    initials: initials.isEmpty ? 'S' : initials,
+                    onChanged: () => setState(() => _data = _load()),
                   ),
                 ),
                 const SizedBox(height: 14),

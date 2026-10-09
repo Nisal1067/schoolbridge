@@ -260,8 +260,7 @@ class _MarksScreenState extends State<MarksScreen> {
   void _showSummary() {
     FocusScope.of(context).unfocus();
     final marks = <int>[
-      for (final student in _students)
-        if (_entered(student['id'] as String) case final mark?) mark,
+      for (final student in _students) ?_entered(student['id'] as String),
     ];
     showMarksSummarySheet(
       context,

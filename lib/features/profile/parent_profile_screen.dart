@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'profile_photo_avatar.dart';
+
 class ParentProfileScreen extends StatefulWidget {
   final bool isTab;
   const ParentProfileScreen({super.key, this.isTab = false});
@@ -113,27 +115,10 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
               children: [
                 Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)]),
-                      boxShadow: [
-                        BoxShadow(color: const Color(0xFF1E40AF).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6)),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Color(0xFF1E40AF),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28,
-                        ),
-                      ),
-                    ),
+                  child: ProfilePhotoAvatar(
+                    initials: initials,
+                    radius: 42,
+                    onChanged: () => setState(() => _data = _load()),
                   ),
                 ),
                 const SizedBox(height: 16),

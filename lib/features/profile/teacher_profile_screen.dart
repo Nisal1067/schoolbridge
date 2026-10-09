@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../attendance/services/attendance_service.dart';
 import '../user_communication/teacher_chat_fab.dart';
+import 'profile_photo_avatar.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
   final bool isTab;
@@ -166,7 +167,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: day,
+                  initialValue: day,
                   decoration: const InputDecoration(labelText: 'Day'),
                   items: days
                       .map(
@@ -187,7 +188,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   )
                 else
                   DropdownButtonFormField<String>(
-                    value: selectedClass,
+                    initialValue: selectedClass,
                     decoration: const InputDecoration(labelText: 'Class'),
                     items: classNames
                         .map(
@@ -216,8 +217,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                             context: context,
                             initialTime: start,
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setModalState(() => start = picked);
+                          }
                         },
                         icon: const Icon(Icons.access_time),
                         label: Text(_timeText(start)),
@@ -231,7 +233,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                             context: context,
                             initialTime: end,
                           );
-                          if (picked != null) setModalState(() => end = picked);
+                          if (picked != null) {
+                            setModalState(() => end = picked);
+                          }
                         },
                         icon: const Icon(Icons.schedule),
                         label: Text(_timeText(end)),
@@ -328,9 +332,13 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       IconButton(
                         onPressed: () async {
                           final item = await _addScheduleDialog(classes);
-                          if (item == null || !mounted) return;
+                          if (item == null || !mounted) {
+                            return;
+                          }
                           final uid = FirebaseAuth.instance.currentUser?.uid;
-                          if (uid == null) return;
+                          if (uid == null) {
+                            return;
+                          }
                           try {
                             await FirebaseFirestore.instance
                                 .collection('users')
@@ -341,7 +349,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                             schedule.add(item);
                             setModalState(() {});
                           } catch (error) {
-                            if (!context.mounted) return;
+                            if (!context.mounted) {
+                              return;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -389,7 +399,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                                             .instance
                                             .currentUser
                                             ?.uid;
-                                        if (uid == null) return;
+                                        if (uid == null) {
+                                          return;
+                                        }
                                         schedule.removeAt(entry.key);
                                         await FirebaseFirestore.instance
                                             .collection('users')
@@ -410,7 +422,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         ),
       ),
     );
-    if (mounted) setState(() => _data = _load());
+    if (mounted) {
+      setState(() {
+        _data = _load();
+      });
+    }
   }
 
   @override
@@ -438,7 +454,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         if (snapshot.hasError) {
           return Center(
             child: TextButton(
-              onPressed: () => setState(() => _data = _load()),
+              onPressed: () {
+                setState(() {
+                  _data = _load();
+                });
+              },
               child: const Text('Could not load profile. Retry'),
             ),
           );
@@ -456,7 +476,6 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
             .join()
             .toUpperCase();
         final subjects = _subjects(data['subjects'] ?? data['subject']);
-        final photo = (data['photoUrl'] ?? '').toString();
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
@@ -481,28 +500,13 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                         ),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 44,
-                      backgroundColor: const Color(0xFFEEF2FF),
-                      child: photo.isEmpty
-                          ? Text(
-                              initials,
-                              style: const TextStyle(
-                                color: Color(0xFF1E40AF),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 26,
-                              ),
-                            )
-                          : ClipOval(
-                              child: Image.network(
-                                photo,
-                                width: 88,
-                                height: 88,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, error, stack) =>
-                                    Text(initials),
-                              ),
-                            ),
+                    child: ProfilePhotoAvatar(
+                      initials: initials,
+                      onChanged: () {
+                        setState(() {
+                          _data = _load();
+                        });
+                      },
                     ),
                   ),
                 ),
