@@ -83,6 +83,11 @@ class ClassAssignmentService {
           'schoolId': school,
           'active': data['active'],
           'parentIds': data['parentIds'] ?? student?['parentIds'] ?? [],
+          'address': data['address'] ?? student?['address'] ?? '',
+          'homePhone': data['homePhone'] ?? student?['homePhone'] ?? '',
+          'dob': data['dob'] ?? student?['dob'] ?? '',
+          'gender': data['gender'] ?? student?['gender'] ?? '',
+          'admissionNo': data['admissionNo'] ?? student?['admissionNo'] ?? '',
         }, SetOptions(merge: true));
       } else if (student != null) {
         transaction.delete(studentRef);

@@ -49,3 +49,9 @@ app.*.map.json
 
 # Node.js dependencies
 node_modules/
+# Node dependencies
+node_modules/
+# Attachment backend secrets and dependencies
+attachment_backend/node_modules/
+attachment_backend/.env
+attachment_backend/*service-account*.json

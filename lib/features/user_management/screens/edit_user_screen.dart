@@ -19,12 +19,12 @@ class _EditUserScreenState extends State<EditUserScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _homePhoneController;
+  late TextEditingController _addressController;
   late TextEditingController _roleController;
   late TextEditingController _classController;
   late TextEditingController _statusController;
 
-  String? _selectedParentId;
-  List<UserItem> _parents = [];
   bool _isSaving = false;
 
   @override
@@ -33,23 +33,11 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _nameController = TextEditingController(text: widget.user.name);
     _emailController = TextEditingController(text: widget.user.email);
     _phoneController = TextEditingController(text: widget.user.phone);
+    _homePhoneController = TextEditingController(text: widget.user.homePhone);
+    _addressController = TextEditingController(text: widget.user.address);
     _roleController = TextEditingController(text: widget.user.role);
     _classController = TextEditingController(text: widget.user.gradeOrClass);
     _statusController = TextEditingController(text: widget.user.status);
-    _selectedParentId = widget.user.parentIds.isNotEmpty ? widget.user.parentIds.first : null;
-    _loadParents();
-  }
-
-  void _loadParents() {
-    setState(() {
-      _parents = UserManagementService()
-          .currentUsers
-          .where((u) => u.role == 'Parent')
-          .toList();
-      if (_selectedParentId != null && !_parents.any((p) => p.id == _selectedParentId)) {
-        _selectedParentId = null;
-      }
-    });
   }
 
   @override
@@ -57,6 +45,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _homePhoneController.dispose();
+    _addressController.dispose();
     _roleController.dispose();
     _classController.dispose();
     _statusController.dispose();
@@ -119,53 +109,6 @@ class _EditUserScreenState extends State<EditUserScreen> {
     );
   }
 
-  Widget _buildParentDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButtonFormField<String>(
-        value: _selectedParentId,
-        isExpanded: true,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF1E293B),
-        ),
-        decoration: const InputDecoration(
-          filled: false,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-        ),
-        hint: const Text(
-          'Select Parent (Optional)',
-          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-        ),
-        items: _parents.map((parent) {
-          return DropdownMenuItem(
-            value: parent.id,
-            child: Text(parent.name, overflow: TextOverflow.ellipsis),
-          );
-        }).toList(),
-        onChanged: (val) {
-          setState(() {
-            _selectedParentId = val;
-          });
-        },
-      ),
-    );
-  }
-
   Future<void> _handleUpdate() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -175,24 +118,25 @@ class _EditUserScreenState extends State<EditUserScreen> {
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       phone: _phoneController.text.trim(),
+      homePhone: _homePhoneController.text.trim(),
+      address: _addressController.text.trim(),
       role: _roleController.text.trim(),
       gradeOrClass: _classController.text.trim(),
       status: _statusController.text.trim().isEmpty
           ? 'Active'
           : _statusController.text.trim(),
-      parentIds: _roleController.text.trim().toLowerCase() == 'student' && _selectedParentId != null
-          ? [_selectedParentId!]
-          : [],
+      parentIds: widget.user.parentIds,
     );
 
     try {
       await UserManagementService().updateUser(updated);
     } catch (_) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Could not update user and class assignment. Please try again.',
+              'Could not update user. Please try again.',
             ),
           ),
         );
@@ -212,56 +156,6 @@ class _EditUserScreenState extends State<EditUserScreen> {
         ),
       );
       Navigator.of(context).pop(updated);
-    }
-  }
-
-  Future<void> _handleDelete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete User'),
-        content: Text(
-          'Are you sure you want to delete ${widget.user.name}? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await UserManagementService().deleteUser(widget.user.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('User "${widget.user.name}" deleted.'),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-        // Pop back to the users list
-        Navigator.of(context).pop(); // pop edit
-        Navigator.of(context).maybePop(); // pop details
-      }
     }
   }
 
@@ -313,23 +207,34 @@ class _EditUserScreenState extends State<EditUserScreen> {
 
                       const SizedBox(height: 18),
 
+                      _buildFieldLabel('Home Phone / Landline (Optional)'),
+                      _buildTextField(
+                        controller: _homePhoneController,
+                        keyboardType: TextInputType.phone,
+                        hintText: 'e.g. 011 234 5678',
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      _buildFieldLabel('Home Address (Optional)'),
+                      _buildTextField(
+                        controller: _addressController,
+                        hintText: 'e.g. No. 45, Temple Road, Colombo',
+                      ),
+
+                      const SizedBox(height: 18),
+
                       _buildFieldLabel('Role'),
                       _buildTextField(controller: _roleController),
 
                       const SizedBox(height: 18),
 
-                      _buildFieldLabel('Class'),
+                      _buildFieldLabel('Class / Department'),
                       _buildTextField(controller: _classController),
 
                       const SizedBox(height: 18),
 
-                      if (_roleController.text.trim().toLowerCase() == 'student') ...[
-                        _buildFieldLabel('Assign Parent'),
-                        _buildParentDropdown(),
-                        const SizedBox(height: 18),
-                      ],
-
-                      _buildFieldLabel('Status'),
+                      _buildFieldLabel('Status (Active / Inactive)'),
                       _buildTextField(controller: _statusController),
 
                       const SizedBox(height: 24),
@@ -342,71 +247,37 @@ class _EditUserScreenState extends State<EditUserScreen> {
             // Action Buttons
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: Column(
-                children: [
-                  // Update User Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _handleUpdate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Update User',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _handleUpdate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Delete User Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _handleDelete,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFEF4444),
-                        side: const BorderSide(
-                          color: Color(0xFFEF4444),
-                          width: 1.2,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'Delete User',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],

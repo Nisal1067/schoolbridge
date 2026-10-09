@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/announcement.dart';
 import '../services/homework_announcement_service.dart';
 import '../widgets/task_widgets.dart';
+import '../../user_communication/teacher_chat_fab.dart';
 
 class _AudienceOption {
   final String label;
@@ -194,9 +195,10 @@ class _AddAnnouncementScreenState extends State<AddAnnouncementScreen> {
     return Scaffold(
       backgroundColor: TaskColors.background,
       appBar: taskAppBar(_editing ? 'Edit Announcement' : 'Add Announcement'),
+      floatingActionButton: const TeacherChatFab(),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, kTeacherFabClearance),
           children: [
             const FieldLabel('Announcement Title'),
             TextField(

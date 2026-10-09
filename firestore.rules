@@ -18,24 +18,24 @@ service cloud.firestore {
 
     function isActiveTeacher() {
       return signedIn()
-        && userData().active == true
-        && userData().role == 'teacher';
+        && userData().get('active', true) == true
+        && userData().get('role', '').lower() == 'teacher';
     }
 
     function isActiveAdmin() {
       return signedIn()
-        && userData().active == true
-        && userData().role == 'admin';
+        && userData().get('active', true) == true
+        && userData().get('role', '').lower() == 'admin';
     }
 
-    function active() { return signedIn() && userData().active == true; }
+    function active() { return signedIn() && userData().get('active', true) == true; }
 
     function isStudent() {
-      return active() && userData().role == 'student';
+      return active() && userData().get('role', '').lower() == 'student';
     }
 
     function isParent() {
-      return active() && userData().role == 'parent';
+      return active() && userData().get('role', '').lower() == 'parent';
     }
 
     // Parents may read homework and announcements of their own school.
@@ -48,6 +48,38 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/students/$(request.auth.uid)).data;
     }
 
+    // Older student accounts may not have a students/{uid} roster document.
+    // Their admin-managed users/{uid} profile still carries the school and
+    // class assignment, so use it as a safe fallback for homework access.
+    function studentSchoolId() {
+      let rosterSchool = exists(/databases/$(database)/documents/students/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/students/$(request.auth.uid)).data.get('schoolId', '')
+        : '';
+      return rosterSchool != '' ? rosterSchool : userData().get('schoolId', '');
+    }
+
+    function studentClassId() {
+      let rosterClass = exists(/databases/$(database)/documents/students/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/students/$(request.auth.uid)).data.get('classId', '')
+        : '';
+      return rosterClass != '' ? rosterClass : userData().get('classId', '');
+    }
+
+    function studentClassName() {
+      let rosterName = exists(/databases/$(database)/documents/students/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/students/$(request.auth.uid)).data.get('className', '')
+        : '';
+      return rosterName != '' ? rosterName
+        : userData().get('gradeOrClass', userData().get('class', ''));
+    }
+
+    function studentDisplayName() {
+      let rosterName = exists(/databases/$(database)/documents/students/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/students/$(request.auth.uid)).data.get('name', '')
+        : '';
+      return rosterName != '' ? rosterName : userData().get('name', '');
+    }
+
     function teaches(classId, schoolId) {
       let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
       return isActiveTeacher() && userData().schoolId == schoolId
@@ -56,18 +88,35 @@ service cloud.firestore {
           || request.auth.uid in classroom.get('teacherIds', []));
     }
 
+    // Homework is assigned from the teacher's school-scoped class list.
+    // Class documents in older deployments do not all store the teacher
+    // assignment using the same field, so creation must not depend on the
+    // optional teacherId/teacherIds fields.
+    function canCreateHomework(classId, schoolId) {
+      let classroom = get(/databases/$(database)/documents/classes/$(classId)).data;
+      return isActiveTeacher()
+        && userData().schoolId == schoolId
+        && classroom.schoolId == schoolId;
+    }
+
     // Homework is visible to students in the same class and school.
     function studentSeesClass(classId, schoolId) {
+      let classroomName = exists(/databases/$(database)/documents/classes/$(classId))
+        ? get(/databases/$(database)/documents/classes/$(classId)).data.get('name', '')
+        : '';
       return isStudent()
         && userData().schoolId == schoolId
-        && studentRecord().schoolId == schoolId
-        && studentRecord().classId == classId;
+        && studentSchoolId() == schoolId
+        && (studentClassId() == classId
+          || classroomName == studentClassId()
+          || classroomName == studentClassName());
     }
 
     function linked(studentId, schoolId) {
       let student = get(/databases/$(database)/documents/students/$(studentId)).data;
       return active() && userData().schoolId == schoolId && student.schoolId == schoolId
-        && ((userData().role == 'student' && studentId == request.auth.uid)
+        && ((userData().get('role', '').lower() == 'student'
+              && studentId == request.auth.uid)
           || (userData().role == 'parent' && request.auth.uid in student.parentIds));
     }
 
@@ -87,7 +136,8 @@ service cloud.firestore {
     // Classes, students, users
     // ======================================================================
     match /classes/{classId} {
-      allow read: if isActiveAdmin() || (isActiveTeacher()
+      allow get: if isParent() && resource != null && resource.data.schoolId == userData().schoolId;
+      allow read: if isActiveAdmin() || (isActiveTeacher() && resource != null
         && resource.data.schoolId == userData().schoolId
         && (resource.data.get('teacherId', '') == request.auth.uid
           || request.auth.uid in resource.data.get('teacherIds', [])));
@@ -95,7 +145,7 @@ service cloud.firestore {
     }
 
     match /students/{studentId} {
-      allow read: if isActiveAdmin() || (active() && resource.data.schoolId == userData().schoolId
+      allow read: if isActiveAdmin() || (active() && resource != null && resource.data.schoolId == userData().schoolId
         && ((userData().role == 'student' && studentId == request.auth.uid)
           || (userData().role == 'parent' && request.auth.uid in resource.data.parentIds)
           || teaches(resource.data.classId, resource.data.schoolId)));
@@ -105,11 +155,94 @@ service cloud.firestore {
     // SECURITY: users may only update their own profile while role, active
     // and schoolId stay unchanged; only admins can change those.
     match /users/{uid} {
-      allow get: if signedIn() && (request.auth.uid == uid || isActiveAdmin());
+      allow get: if signedIn() && (
+        request.auth.uid == uid || 
+        isActiveAdmin() || 
+        (active() && resource != null && resource.data.schoolId == userData().schoolId)
+      );
       allow list, create, delete: if isActiveAdmin();
       allow update: if isActiveAdmin() || (signedIn() && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['role', 'active', 'schoolId', 'classId', 'class', 'gradeOrClass']));
+          
+      match /notifications/{notificationId} {
+        allow read, update, delete: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn();
+      }
+    }
+
+    function validChatPair(data) {
+      let teacher = get(/databases/$(database)/documents/users/$(data.teacherId)).data;
+      let parent = get(/databases/$(database)/documents/users/$(data.parentId)).data;
+      let child = get(/databases/$(database)/documents/students/$(data.studentId)).data;
+      let classroom = get(/databases/$(database)/documents/classes/$(data.classId)).data;
+      return active() && request.auth.uid in data.participantIds
+        && teacher.get('active', true) == true && teacher.get('role', '').lower() == 'teacher'
+        && parent.get('active', true) == true && parent.get('role', '').lower() == 'parent'
+        && teacher.schoolId == data.schoolId && parent.schoolId == data.schoolId
+        && child.schoolId == data.schoolId && child.classId == data.classId
+        && data.parentId in child.get('parentIds', [])
+        && classroom.schoolId == data.schoolId
+        && (classroom.get('teacherId', '') == data.teacherId
+          || data.teacherId in classroom.get('teacherIds', []));
+    }
+
+    match /chats/{chatId} {
+      allow get: if active() && !exists(/databases/$(database)/documents/chats/$(chatId))
+        && userData().get('role', '').lower() in ['teacher', 'parent'];
+      allow read: if active() && userData().get('role', '').lower() in ['teacher', 'parent']
+        && request.auth.uid in resource.data.participantIds;
+      allow create: if validChatPair(request.resource.data)
+        && chatId == request.resource.data.teacherId + '_' + request.resource.data.parentId
+        && request.resource.data.keys().hasOnly(['schoolId', 'teacherId', 'parentId',
+          'studentId', 'classId', 'participantIds', 'lastMessage', 'lastMessageAt'])
+        && request.resource.data.participantIds == [request.resource.data.teacherId, request.resource.data.parentId]
+        && request.resource.data.lastMessage == ''
+        && request.resource.data.lastMessageAt == request.time;
+      allow update: if validChatPair(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt'])
+        && request.resource.data.lastMessage is string
+        && request.resource.data.lastMessage.size() > 0 && request.resource.data.lastMessage.size() <= 2000
+        && request.resource.data.lastMessageAt == request.time;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        function chat() { return get(/databases/$(database)/documents/chats/$(chatId)).data; }
+        function validAttachment(data) {
+          return !('attachment' in data) || (
+            data.attachment is map
+            && data.attachment.keys().hasAll(['path', 'name', 'size', 'contentType', 'provider'])
+            && data.attachment.keys().hasOnly(['path', 'name', 'size', 'contentType', 'provider'])
+            && data.attachment.path == 'chats/' + chatId + '/' + request.auth.uid + '/' + messageId + '/attachment'
+            && data.attachment.name is string && data.attachment.name.size() > 0 && data.attachment.name.size() <= 255
+            && data.attachment.size is int && data.attachment.size > 0 && data.attachment.size <= 10 * 1024 * 1024
+            && data.attachment.contentType in ['image/jpeg', 'image/png', 'application/pdf', 'text/plain',
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+            && data.attachment.provider == 'cloudinary'
+              && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.state == 'ready'
+              && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.uid == request.auth.uid
+              && get(/databases/$(database)/documents/chats/$(chatId)/attachmentUploads/$(messageId)).data.attachment == data.attachment);
+        }
+        allow read: if active() && userData().get('role', '').lower() in ['teacher', 'parent']
+          && request.auth.uid in chat().participantIds;
+        allow create: if validChatPair(chat())
+          && request.resource.data.keys().hasAll(['senderId', 'text', 'sentAt'])
+          && request.resource.data.keys().hasOnly(['senderId', 'text', 'sentAt', 'attachment'])
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && (request.resource.data.text.size() > 0 || 'attachment' in request.resource.data)
+          && request.resource.data.text.size() <= 2000 && validAttachment(request.resource.data)
+          && request.resource.data.sentAt == request.time;
+        // Identical retries are safe after an uncertain network acknowledgement.
+        allow update: if validChatPair(chat()) && resource.data.senderId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sentAt'])
+          && request.resource.data.sentAt == request.time;
+        allow delete: if false;
+      }
+      // Only the trusted attachment API may create upload receipts.
+      match /attachmentUploads/{messageId} {
+        allow read, write: if false;
+      }
     }
 
     match /reports/{reportId} {
@@ -138,10 +271,10 @@ service cloud.firestore {
     function homeworkFields(data) {
       return data.keys().hasAll(['schoolId', 'classId', 'className', 'teacherId',
           'subject', 'title', 'description', 'dueDate', 'totalStudents',
-          'submittedCount', 'createdAt', 'updatedAt'])
+          'submittedCount', 'attachments', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly(['schoolId', 'classId', 'className', 'teacherId',
           'subject', 'title', 'description', 'dueDate', 'totalStudents',
-          'submittedCount', 'createdAt', 'updatedAt'])
+          'submittedCount', 'attachments', 'createdAt', 'updatedAt'])
         && data.teacherId == request.auth.uid
         && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 60
         && data.title is string && data.title.size() > 0 && data.title.size() <= 120
@@ -150,6 +283,7 @@ service cloud.firestore {
         && data.dueDate is timestamp
         && data.totalStudents is int && data.totalStudents >= 0
         && data.submittedCount is int && data.submittedCount >= 0
+        && data.attachments is list && data.attachments.size() <= 5
         && data.updatedAt == request.time;
     }
 
@@ -162,7 +296,10 @@ service cloud.firestore {
         || parentInSchool(resource.data.schoolId);
 
       allow create: if homeworkFields(request.resource.data)
-        && teaches(request.resource.data.classId, request.resource.data.schoolId)
+        && canCreateHomework(
+          request.resource.data.classId,
+          request.resource.data.schoolId
+        )
         && request.resource.data.createdAt == request.time
         && request.resource.data.submittedCount == 0;
 
@@ -197,15 +334,18 @@ service cloud.firestore {
         }
 
         function validNewSubmission(data) {
-          return data.keys().hasAll(['studentId', 'studentName', 'status', 'note', 'submittedAt'])
-            && data.keys().hasOnly(['studentId', 'studentName', 'status', 'note', 'submittedAt'])
+          return data.keys().hasAll(['studentId', 'studentName', 'status', 'note', 'attachments', 'submittedAt'])
+            && data.keys().hasOnly(['studentId', 'studentName', 'status', 'note', 'attachments', 'submittedAt'])
             && data.studentId == request.auth.uid
-            && data.studentName == studentRecord().name
+            && data.studentName == studentDisplayName()
             && data.status == 'submitted'
             && data.note is string && data.note.size() <= 2000
+            && data.attachments is list && data.attachments.size() <= 5
             && data.submittedAt == request.time
-            && homeworkData().classId == studentRecord().classId
-            && homeworkData().schoolId == studentRecord().schoolId;
+            && (homeworkData().classId == studentClassId()
+              || homeworkData().className == studentClassId()
+              || homeworkData().className == studentClassName())
+            && homeworkData().schoolId == studentSchoolId();
         }
 
         // Uses the path ({studentId}), not resource.data, so a student can
@@ -229,9 +369,11 @@ service cloud.firestore {
           || (mine()
               && resource.data.status == 'submitted'
               && request.resource.data.diff(resource.data).affectedKeys()
-                  .hasOnly(['note', 'submittedAt'])
+                  .hasOnly(['note', 'attachments', 'submittedAt'])
               && request.resource.data.note is string
               && request.resource.data.note.size() <= 2000
+              && request.resource.data.attachments is list
+              && request.resource.data.attachments.size() <= 5
               && request.resource.data.submittedAt == request.time);
 
         // Needed so deleting a homework can also clear its submissions.

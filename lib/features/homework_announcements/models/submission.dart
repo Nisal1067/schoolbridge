@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'attachment.dart';
+
 /// A student's submission, stored at
 /// `homework/{homeworkId}/submissions/{studentId}`.
 ///
@@ -16,6 +18,9 @@ class Submission {
   final DateTime? submittedAt;
   final DateTime? reviewedAt;
 
+  /// Files the student handed in (PDF / images).
+  final List<Attachment> attachments;
+
   const Submission({
     required this.studentId,
     required this.studentName,
@@ -24,6 +29,7 @@ class Submission {
     required this.feedback,
     this.submittedAt,
     this.reviewedAt,
+    this.attachments = const [],
   });
 
   bool get isReviewed => status == 'reviewed';
@@ -51,6 +57,7 @@ class Submission {
       feedback: map['feedback'] as String? ?? '',
       submittedAt: date(map['submittedAt']),
       reviewedAt: date(map['reviewedAt']),
+      attachments: Attachment.listFrom(map['attachments']),
     );
   }
 }

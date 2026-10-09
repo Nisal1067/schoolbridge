@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../models/homework.dart';
 import '../models/submission.dart';
 import '../services/homework_announcement_service.dart';
+import '../widgets/attachment_widgets.dart';
 import '../widgets/task_widgets.dart';
 import 'add_homework_screen.dart';
 import 'homework_dashboard_screen.dart';
+import '../../user_communication/teacher_chat_fab.dart';
 
 /// "Homework Details" page. Listens to the document so edits show instantly.
 class HomeworkDetailScreen extends StatefulWidget {
@@ -66,6 +68,7 @@ class _HomeworkDetailScreenState extends State<HomeworkDetailScreen> {
     return Scaffold(
       backgroundColor: TaskColors.background,
       appBar: taskAppBar('Homework Details'),
+      floatingActionButton: const TeacherChatFab(),
       body: SafeArea(
         child: StreamBuilder<Homework?>(
           stream: _stream,
@@ -91,7 +94,7 @@ class _HomeworkDetailScreenState extends State<HomeworkDetailScreen> {
 
   Widget _content(Homework h) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, kTeacherFabClearance),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -155,20 +158,16 @@ class _HomeworkDetailScreenState extends State<HomeworkDetailScreen> {
               ],
             ),
           ),
-          const _Card(
+          _Card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Reference Files',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
-                SizedBox(height: 8),
-                // Shows files here once attachments (Firebase Storage) exist.
-                Text(
-                  'No files attached.',
-                  style: TextStyle(fontSize: 14, color: TaskColors.grey),
-                ),
+                const SizedBox(height: 8),
+                AttachmentList(attachments: h.attachments),
               ],
             ),
           ),

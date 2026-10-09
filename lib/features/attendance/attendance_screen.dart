@@ -9,7 +9,10 @@ import 'services/attendance_service.dart';
 import 'models/attendance_record.dart';
 
 class AttendanceScreen extends StatefulWidget {
-  const AttendanceScreen({super.key});
+  /// Set to false when the screen is used as a tab (no screen to go back to).
+  final bool showBackButton;
+
+  const AttendanceScreen({super.key, this.showBackButton = true});
 
   @override
   State<AttendanceScreen> createState() => _AttendanceScreenState();
@@ -71,15 +74,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      bottomNavigationBar: AttendanceNavigation(
-        teacher: true,
-        teacherLayout: true,
-      ),
+      bottomNavigationBar: widget.showBackButton
+          ? const AttendanceNavigation(teacher: true, teacherLayout: true)
+          : null,
 
-      appBar: AppBar(
+      appBar: widget.showBackButton ? AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.white,
+        automaticallyImplyLeading: false,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
@@ -92,7 +95,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             } else {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const TeacherDashboard()),
+                MaterialPageRoute(
+                  builder: (_) => const TeacherDashboard(),
+                ),
               );
             }
           },
@@ -116,7 +121,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
           const SizedBox(width: 8),
         ],
-      ),
+      ) : null,
 
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _classes,
@@ -143,14 +148,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _records ??= _service.classRecords(_classroom!);
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 84),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (classes.data!.length > 1)
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
@@ -160,7 +168,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         child: DropdownButton<int>(
                           value: _selected,
                           isExpanded: true,
-                          icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
+                          icon: const Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: Color(0xFF64748B),
+                          ),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -181,7 +192,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         ),
                       ),
                     ),
-                  
+
                   // CLASS INFORMATION PREMIUM CARD
                   Container(
                     width: double.infinity,
@@ -209,7 +220,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.groups_rounded, color: Colors.white, size: 28),
+                          child: const Icon(
+                            Icons.groups_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -268,7 +283,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         elevation: 4,
-                        shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                        shadowColor: const Color(0xFF2563EB)
+                            .withValues(alpha: 0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -280,7 +296,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                   Row(
                     children: [
-                      const Icon(Icons.history_rounded, size: 20, color: Color(0xFF64748B)),
+                      const Icon(
+                        Icons.history_rounded,
+                        size: 20,
+                        color: Color(0xFF64748B),
+                      ),
                       const SizedBox(width: 8),
                       const Text(
                         'Recent Records',
@@ -338,85 +358,90 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         children: groups.entries.map<Widget>((entry) {
                           final stats = AttendanceRecord.summary(entry.value);
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.only(bottom: 16),
                             child: Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    // Left Calendar Icon
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF0F9FF),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(
-                                        Icons.calendar_month_rounded,
-                                        color: Color(0xFF0EA5E9),
-                                        size: 24,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    
-                                    // Date & Stats
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            entry.key,
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF0F172A),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Wrap(
-                                            spacing: 8,
-                                            runSpacing: 8,
-                                            children: [
-                                              _buildStatPill('P', stats['present']!, const Color(0xFF10B981), const Color(0xFFD1FAE5)),
-                                              _buildStatPill('A', stats['absent']!, const Color(0xFFEF4444), const Color(0xFFFEE2E2)),
-                                              _buildStatPill('L', stats['late']!, const Color(0xFFF59E0B), const Color(0xFFFEF3C7)),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    
-                                    // Actions
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        _actionButton(
-                                          icon: Icons.edit_note_rounded,
-                                          color: const Color(0xFF64748B),
-                                          onPressed: _deleting ? null : () => _edit(entry.value),
-                                        ),
-                                        _actionButton(
-                                          icon: Icons.delete_outline_rounded,
-                                          color: const Color(0xFFEF4444),
-                                          onPressed: _deleting ? null : () => _delete(entry.value),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                                border: Border.all(color: const Color(0xFFF1F5F9)),
                               ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF0F9FF),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(Icons.calendar_month_rounded, color: Color(0xFF0EA5E9), size: 20),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          entry.key,
+                                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                                        ),
+                                      ),
+                                      _actionButton(
+                                        icon: Icons.edit_note_rounded,
+                                        color: const Color(0xFF64748B),
+                                        onPressed: _deleting ? null : () => _edit(entry.value),
+                                      ),
+                                      _actionButton(
+                                        icon: Icons.delete_outline_rounded,
+                                        color: const Color(0xFFEF4444),
+                                        onPressed: _deleting ? null : () => _delete(entry.value),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildMetricCard(
+                                          'Present',
+                                          stats['present']!,
+                                          const Color(0xFF10B981),
+                                          const Color(0xFFD1FAE5),
+                                          Icons.check_circle_rounded,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: _buildMetricCard(
+                                          'Absent',
+                                          stats['absent']!,
+                                          const Color(0xFFEF4444),
+                                          const Color(0xFFFEE2E2),
+                                          Icons.cancel_rounded,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: _buildMetricCard(
+                                          'Late',
+                                          stats['late']!,
+                                          const Color(0xFFF59E0B),
+                                          const Color(0xFFFEF3C7),
+                                          Icons.schedule_rounded,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           );
                         }).toList(),
                       );
@@ -431,31 +456,56 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildStatPill(String label, int count, Color textColor, Color bgColor) {
+  Widget _buildMetricCard(
+    String label,
+    int count,
+    Color mainColor,
+    Color bgColor,
+    IconData icon,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(6),
+        color: bgColor.withValues(alpha: 0.5),
+        border: Border.all(color: bgColor),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          Text(
-            '$label:',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor.withValues(alpha: 0.7)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: mainColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: mainColor.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 4),
+          const SizedBox(height: 6),
           Text(
             '$count',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: textColor),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: mainColor,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _actionButton({required IconData icon, required Color color, required VoidCallback? onPressed}) {
+  Widget _actionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onPressed,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
