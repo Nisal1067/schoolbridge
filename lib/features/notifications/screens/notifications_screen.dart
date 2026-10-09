@@ -1,14 +1,30 @@
 import 'package:flutter/material.dart';
+
 import '../../announcements/services/announcement_service.dart';
 import '../services/notification_service.dart';
 import '../models/in_app_notification.dart';
 import '../../announcements/models/announcement_item.dart';
 
 class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+  final bool onlyNotifications;
+
+  const NotificationsScreen({super.key, this.onlyNotifications = false});
 
   String _formatDate(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final month = months[dt.month - 1];
     final hr = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
     final min = dt.minute.toString().padLeft(2, '0');
@@ -21,7 +37,10 @@ class NotificationsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        title: const Text(
+          'Notifications',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
@@ -32,20 +51,41 @@ class NotificationsScreen extends StatelessWidget {
             onPressed: () {
               NotificationService().markAllAsRead();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('All notifications marked as read', style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF10B981)),
+                const SnackBar(
+                  content: Text(
+                    'All notifications marked as read',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Color(0xFF10B981),
+                ),
               );
             },
-          )
+          ),
         ],
       ),
       body: StreamBuilder<List<InAppNotification>>(
         stream: NotificationService().myNotifications,
         builder: (context, notifSnapshot) {
+          if (onlyNotifications) {
+            if (!notifSnapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final notifications = notifSnapshot.data ?? [];
+            if (notifications.isEmpty) {
+              return _emptyNotifications();
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemCount: notifications.length,
+              itemBuilder: (context, index) =>
+                  _buildNotificationTile(context, notifications[index]),
+            );
+          }
+
           return StreamBuilder<List<AnnouncementItem>>(
             stream: AnnouncementService().announcementsStream,
             builder: (context, annSnapshot) {
-              
-              if (notifSnapshot.connectionState == ConnectionState.waiting && 
+              if (notifSnapshot.connectionState == ConnectionState.waiting &&
                   annSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -54,12 +94,19 @@ class NotificationsScreen extends StatelessWidget {
               final announcements = annSnapshot.data ?? [];
 
               // Combine into a single list of dynamic items
-              final List<dynamic> combinedList = [...notifications, ...announcements];
+              final List<dynamic> combinedList = [
+                ...notifications,
+                ...announcements,
+              ];
 
               // Sort by date (descending)
               combinedList.sort((a, b) {
-                DateTime dateA = a is InAppNotification ? a.createdAt : (a.createdAt ?? DateTime.now());
-                DateTime dateB = b is InAppNotification ? b.createdAt : (b.createdAt ?? DateTime.now());
+                DateTime dateA = a is InAppNotification
+                    ? a.createdAt
+                    : (a.createdAt ?? DateTime.now());
+                DateTime dateB = b is InAppNotification
+                    ? b.createdAt
+                    : (b.createdAt ?? DateTime.now());
                 return dateB.compareTo(dateA);
               });
 
@@ -68,9 +115,20 @@ class NotificationsScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.notifications_off_rounded, size: 64, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.notifications_off_rounded,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 16),
-                      Text('No notifications yet', style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                      Text(
+                        'No notifications yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -97,14 +155,43 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationTile(BuildContext context, InAppNotification notification) {
+  Widget _emptyNotifications() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_off_rounded,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade500,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationTile(
+    BuildContext context,
+    InAppNotification notification,
+  ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       decoration: BoxDecoration(
         color: notification.isRead ? Colors.white : const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: notification.isRead ? const Color(0xFFF1F5F9) : const Color(0xFFBFDBFE),
+          color: notification.isRead
+              ? const Color(0xFFF1F5F9)
+              : const Color(0xFFBFDBFE),
           width: 1.5,
         ),
       ),
@@ -119,12 +206,18 @@ class NotificationsScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: notification.type == 'chat' ? const Color(0xFFDBEAFE) : const Color(0xFFFEF3C7),
+            color: notification.type == 'chat'
+                ? const Color(0xFFDBEAFE)
+                : const Color(0xFFFEF3C7),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
-            notification.type == 'chat' ? Icons.chat_bubble_rounded : Icons.notifications_rounded,
-            color: notification.type == 'chat' ? const Color(0xFF2563EB) : const Color(0xFFD97706),
+            notification.type == 'chat'
+                ? Icons.chat_bubble_rounded
+                : Icons.notifications_rounded,
+            color: notification.type == 'chat'
+                ? const Color(0xFF2563EB)
+                : const Color(0xFFD97706),
           ),
         ),
         title: Text(
@@ -140,13 +233,17 @@ class NotificationsScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-               notification.body,
-               style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+              notification.body,
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
               _formatDate(notification.createdAt),
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -154,7 +251,10 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAnnouncementTile(BuildContext context, AnnouncementItem announcement) {
+  Widget _buildAnnouncementTile(
+    BuildContext context,
+    AnnouncementItem announcement,
+  ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       decoration: BoxDecoration(
@@ -191,7 +291,14 @@ class NotificationsScreen extends StatelessWidget {
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Announcement', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF64748B))),
+              child: const Text(
+                'Announcement',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF64748B),
+                ),
+              ),
             ),
           ],
         ),
@@ -200,15 +307,19 @@ class NotificationsScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-               announcement.message,
-               style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+              announcement.message,
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
             ),
             const SizedBox(height: 6),
             Text(
-              announcement.createdAt != null 
+              announcement.createdAt != null
                   ? _formatDate(announcement.createdAt!)
                   : announcement.timeAgo,
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),

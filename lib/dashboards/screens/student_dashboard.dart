@@ -7,10 +7,15 @@ import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 import '../../features/homework_announcements/student/student_homework_screen.dart';
 import '../../features/homework_announcements/models/student_homework.dart';
+import '../../features/homework_announcements/models/announcement.dart';
 import '../../features/homework_announcements/services/student_homework_service.dart';
 import '../../features/homework_announcements/student/student_homework_detail_screen.dart';
+import '../../features/homework_announcements/student/student_announcements_screen.dart';
 import '../../features/attendance/services/attendance_service.dart';
 import '../../features/profile/student_profile_screen.dart';
+import '../../features/notifications/models/in_app_notification.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
+import '../../features/notifications/services/notification_service.dart';
 
 // MARKS - Import Student Results Screen
 import '../../features/marks/student/student_results_screen.dart';
@@ -64,11 +69,61 @@ class _StudentDashboardState extends State<StudentDashboard> {
               ),
               surfaceTintColor: Colors.transparent,
               actions: [
-                const LogoutButton(),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications_none),
+                StreamBuilder<List<InAppNotification>>(
+                  stream: NotificationService().myNotifications,
+                  builder: (context, snapshot) {
+                    final unreadCount =
+                        snapshot.data
+                            ?.where((notification) => !notification.isRead)
+                            .length ??
+                        0;
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(
+                                onlyNotifications: true,
+                              ),
+                            ),
+                          ),
+                          tooltip: 'Notifications',
+                          icon: const Icon(Icons.notifications_none_rounded),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEF4444),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
+                const LogoutButton(),
               ],
             ),
 
@@ -168,6 +223,8 @@ class _StudentHome extends StatefulWidget {
 class _StudentHomeState extends State<_StudentHome> {
   late final Stream<List<StudentHomework>> _homework = StudentHomeworkService()
       .watchMyHomework();
+  late final Stream<List<Announcement>> _announcements =
+      StudentHomeworkService().watchMyAnnouncements();
 
   String _dueDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 
@@ -385,6 +442,91 @@ class _StudentHomeState extends State<_StudentHome> {
               ),
             ),
           ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              child: StreamBuilder<List<Announcement>>(
+                stream: _announcements,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError || !snapshot.hasData) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final announcements = snapshot.data!
+                      .where((item) => !item.isScheduled)
+                      .take(3)
+                      .toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Announcements',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const StudentAnnouncementsScreen(),
+                              ),
+                            ),
+                            child: const Text('View All'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (announcements.isEmpty)
+                        _pendingCard(
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.campaign_outlined,
+                                color: Color(0xFF64748B),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'No announcements yet.',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ...announcements.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _StudentAnnouncementCard(
+                              item: item,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      StudentAnnouncementDetailScreen(
+                                        announcement: item,
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -467,6 +609,96 @@ class _PendingHomeworkCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${homework.subject} · Due $dueDate',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StudentAnnouncementCard extends StatelessWidget {
+  final Announcement item;
+  final VoidCallback onTap;
+
+  const _StudentAnnouncementCard({required this.item, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isUrgent = item.priority == AnnouncementPriority.urgent;
+    final isImportant = item.priority == AnnouncementPriority.important;
+    final iconColor = isUrgent
+        ? const Color(0xFFDC2626)
+        : isImportant
+        ? const Color(0xFFD97706)
+        : AppColors.primary;
+    final iconBackground = isUrgent
+        ? const Color(0xFFFEE2E2)
+        : isImportant
+        ? const Color(0xFFFEF3C7)
+        : const Color(0xFFDBEAFE);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: iconBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isUrgent
+                    ? Icons.priority_high_rounded
+                    : Icons.campaign_outlined,
+                color: iconColor,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.body,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
