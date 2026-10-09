@@ -14,6 +14,8 @@ MarkRecord mark(String subject, int mark, {int term = 2}) => MarkRecord(
 );
 
 void main() {
+  changeTests();
+
   test('Only the chosen term is included, sorted by subject name', () {
     final overview = ResultsOverview.forTerm([
       mark('Science', 70),
@@ -39,5 +41,37 @@ void main() {
     expect(overview.isEmpty, true);
     expect(overview.average, 0);
     expect(overview.best, isNull);
+  });
+}
+
+void changeTests() {
+  group('change since previous term', () {
+    final term1 = ResultsOverview.forTerm([
+      mark('Mathematics', 80, term: 1),
+      mark('Science', 60, term: 1),
+    ], 1);
+    final term2 = ResultsOverview.forTerm([
+      mark('mathematics', 90),
+      mark('English', 70),
+    ], 2);
+
+    test('average change is current minus previous', () {
+      expect(term2.averageChange(term1), closeTo(10.0, 0.001));
+    });
+
+    test('subject change matches subjects ignoring case', () {
+      expect(term2.subjectChange('Mathematics', term1), 10);
+    });
+
+    test('subject missing in either term gives no change', () {
+      expect(term2.subjectChange('English', term1), isNull);
+      expect(term2.subjectChange('Science', term1), isNull);
+    });
+
+    test('empty terms give no average change', () {
+      final empty = ResultsOverview.forTerm([], 3);
+      expect(empty.averageChange(term2), isNull);
+      expect(term2.averageChange(empty), isNull);
+    });
   });
 }

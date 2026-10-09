@@ -22,6 +22,27 @@ class ResultsOverview {
 
   bool get isEmpty => subjects.isEmpty;
 
+  /// How much the average moved compared with [previous]. Null when either
+  /// term has no marks.
+  double? averageChange(ResultsOverview previous) =>
+      isEmpty || previous.isEmpty ? null : average - previous.average;
+
+  /// How much the mark for [subject] moved compared with [previous]. Null
+  /// when the subject has no mark in one of the two terms.
+  int? subjectChange(String subject, ResultsOverview previous) {
+    final key = subject.trim().toLowerCase();
+    MarkRecord? find(ResultsOverview o) {
+      for (final m in o.subjects) {
+        if (m.subject.trim().toLowerCase() == key) return m;
+      }
+      return null;
+    }
+
+    final now = find(this);
+    final before = find(previous);
+    return now == null || before == null ? null : now.mark - before.mark;
+  }
+
   factory ResultsOverview.forTerm(Iterable<MarkRecord> all, int term) {
     final list = all.where((m) => m.term == term).toList()
       ..sort(
