@@ -10,6 +10,7 @@ import '../../features/attendance/attendance_screen.dart';
 import '../../features/profile/teacher_profile_screen.dart';
 import '../../auth/services/session_navigation.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
+import '../../features/marks/marks_screen.dart'; // MARKS: new import
 import '../../features/user_communication/teacher_chat_fab.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/notifications/services/notification_service.dart';
@@ -169,6 +170,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               )
             : selectedIndex == 4
             ? const TeacherProfileScreen()
+            : selectedIndex == 1
+            ? const MarksScreen() // MARKS: Marks tab
             : selectedIndex == 2
             ? const HomeworkAnnouncementsScreen()
             : selectedIndex == 3
