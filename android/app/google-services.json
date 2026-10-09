@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "154054396010",
+    "project_id": "schoolbridge-7ade3",
+    "storage_bucket": "schoolbridge-7ade3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:154054396010:android:11f75d2a3ea5a3fd5fe213",
+        "android_client_info": {
+          "package_name": "com.example.schoolbridge"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzmssMMqe0QxNmqji3IIoj2L6oLMva15w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
