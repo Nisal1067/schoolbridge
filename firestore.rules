@@ -136,9 +136,8 @@ service cloud.firestore {
     // Classes, students, users
     // ======================================================================
     match /classes/{classId} {
-      // Parents fetch the class referenced by their linked student's profile.
-      allow get: if isParent() && resource.data.schoolId == userData().schoolId;
-      allow read: if isActiveAdmin() || (isActiveTeacher()
+      allow get: if isParent() && resource != null && resource.data.schoolId == userData().schoolId;
+      allow read: if isActiveAdmin() || (isActiveTeacher() && resource != null
         && resource.data.schoolId == userData().schoolId
         && (resource.data.get('teacherId', '') == request.auth.uid
           || request.auth.uid in resource.data.get('teacherIds', [])));
@@ -146,7 +145,7 @@ service cloud.firestore {
     }
 
     match /students/{studentId} {
-      allow read: if isActiveAdmin() || (active() && resource.data.schoolId == userData().schoolId
+      allow read: if isActiveAdmin() || (active() && resource != null && resource.data.schoolId == userData().schoolId
         && ((userData().role == 'student' && studentId == request.auth.uid)
           || (userData().role == 'parent' && request.auth.uid in resource.data.parentIds)
           || teaches(resource.data.classId, resource.data.schoolId)));
@@ -159,12 +158,17 @@ service cloud.firestore {
       allow get: if signedIn() && (
         request.auth.uid == uid || 
         isActiveAdmin() || 
-        (active() && resource.data.schoolId == userData().schoolId)
+        (active() && resource != null && resource.data.schoolId == userData().schoolId)
       );
       allow list, create, delete: if isActiveAdmin();
       allow update: if isActiveAdmin() || (signedIn() && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['role', 'active', 'schoolId', 'classId', 'class', 'gradeOrClass']));
+          
+      match /notifications/{notificationId} {
+        allow read, update, delete: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn();
+      }
     }
 
     function validChatPair(data) {

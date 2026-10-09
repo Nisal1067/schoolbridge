@@ -8,6 +8,31 @@ class AuthService {
 
   Future<void> logout() => FirebaseAuth.instance.signOut();
 
+  /// Sends a password reset email via Firebase Authentication
+  Future<void> sendPasswordResetEmail(String email) async {
+    final cleanEmail = email.trim();
+    if (cleanEmail.isEmpty) {
+      throw const AuthException('Please enter your email address.');
+    }
+    if (!cleanEmail.contains('@') || !cleanEmail.contains('.')) {
+      throw const AuthException('Please enter a valid email address.');
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: cleanEmail);
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(switch (e.code) {
+        'user-not-found' => 'No account found registered with this email address.',
+        'invalid-email' => 'The email address format is invalid.',
+        'too-many-requests' => 'Too many requests. Please try again later.',
+        _ => e.message ?? 'Failed to send password reset email. Please try again.',
+      });
+    } catch (e) {
+      if (e is AuthException) rethrow;
+      throw AuthException('Failed to send password reset email: $e');
+    }
+  }
+
   /// Looks up user profile in Firestore across `users` and `students` collections.
   Future<Map<String, dynamic>?> _findUserProfile({
     required String uid,

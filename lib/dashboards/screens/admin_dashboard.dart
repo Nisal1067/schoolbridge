@@ -317,7 +317,7 @@ class _AdminHome extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
-      appBar: const SchoolBridgeAppBar(title: 'SchoolBridge'),
+      appBar: const SchoolBridgeAppBar(title: 'Admin Dashboard'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
