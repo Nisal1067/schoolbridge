@@ -7,6 +7,11 @@ import '../../core/widgets/dashboard_item.dart';
 import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 import '../../features/homework_announcements/student/student_homework_screen.dart';
+import '../../features/attendance/services/attendance_service.dart';
+import '../../features/profile/student_profile_screen.dart';
+
+// MARKS - Import Student Results Screen
+import '../../features/marks/student/student_results_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   final int initialIndex;
@@ -18,8 +23,15 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> {
   late int selectedIndex = widget.initialIndex;
+  late Future<Map<String, dynamic>> _studentProfile;
 
   final pages = const ['Home', 'Homework', 'Results', 'Attendance', 'Profile'];
+
+  @override
+  void initState() {
+    super.initState();
+    _studentProfile = AttendanceService().profile();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +41,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
           : AppBar(
               title: const Row(
                 children: [
-                  Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+                  Icon(
+                    Icons.school_rounded,
+                    color: Color(0xFF4F46E5),
+                    size: 28,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'SchoolBridge',
@@ -53,15 +69,27 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
 
       body: selectedIndex == 0
-          ? _StudentHome(
-              onNavigate: (index) {
-                setState(() {
-                  selectedIndex = index;
-                });
+          ? FutureBuilder<Map<String, dynamic>>(
+              future: _studentProfile,
+              builder: (context, snapshot) {
+                final name = (snapshot.data?['name'] ?? 'Student').toString();
+                return _StudentHome(
+                  studentName: name,
+                  onNavigate: (index) {
+                    setState(() {
+                      selectedIndex = index;
+                    });
+                  },
+                );
               },
             )
           : selectedIndex == 1
           ? const SafeArea(child: StudentHomeworkScreen())
+          // MARKS - Open Student Results Screen when Results tab is selected
+          : selectedIndex == 2
+          ? const StudentResultsScreen()
+          : selectedIndex == 4
+          ? const StudentProfileScreen(isTab: true)
           : PlaceholderPage(title: pages[selectedIndex]),
 
       bottomNavigationBar: NavigationBar(
@@ -70,7 +98,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
           if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ParentAttendanceScreen()),
+              MaterialPageRoute(
+                builder: (context) =>
+                    const ParentAttendanceScreen(studentLayout: true),
+              ),
             );
             return;
           }
@@ -108,8 +139,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
 class _StudentHome extends StatelessWidget {
   final ValueChanged<int> onNavigate;
+  final String studentName;
 
-  const _StudentHome({required this.onNavigate});
+  const _StudentHome({required this.onNavigate, required this.studentName});
 
   @override
   Widget build(BuildContext context) {
@@ -124,13 +156,13 @@ class _StudentHome extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Good Morning!', style: TextStyle(color: Colors.white70)),
               SizedBox(height: 6),
               Text(
-                'Welcome back, Student',
+                'Welcome back, $studentName',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -172,7 +204,8 @@ class _StudentHome extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ParentAttendanceScreen(),
+                builder: (context) =>
+                    const ParentAttendanceScreen(studentLayout: true),
               ),
             );
           },

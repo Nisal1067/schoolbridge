@@ -1,10 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../attendance/services/attendance_service.dart';
 import '../user_communication/teacher_chat_fab.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
-  const TeacherProfileScreen({super.key});
+  final bool isTab;
+
+  const TeacherProfileScreen({super.key, this.isTab = false});
   @override
   State<TeacherProfileScreen> createState() => _TeacherProfileScreenState();
 }
@@ -27,19 +31,12 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   Widget _section(String title, Widget content, {IconData? icon}) => Container(
     width: double.infinity,
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(16),
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.03),
-          blurRadius: 15,
-          offset: const Offset(0, 4),
-        ),
-      ],
-      border: Border.all(color: const Color(0xFFF1F5F9)),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,21 +44,14 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         Row(
           children: [
             if (icon != null) ...[
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 18, color: const Color(0xFF4F46E5)),
-              ),
-              const SizedBox(width: 12),
+              Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+              const SizedBox(width: 8),
             ],
             Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF0F172A),
                 letterSpacing: -0.2,
               ),
@@ -78,21 +68,28 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   );
 
   Widget _detail(String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(color: Color(0xFF6B7280)),
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 105,
+          child: Text(
+            label,
+            style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
           ),
-          TextSpan(
-            text: value.isEmpty ? 'Not provided' : value,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        Expanded(
+          child: Text(
+            value.isEmpty ? 'Not provided' : value,
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ],
-      ),
-      style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+        ),
+      ],
     ),
   );
 
@@ -117,50 +114,169 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
               .toList(),
         );
 
-  void _schedule(Map<String, dynamic> data) {
-    final schedule = data['schedule'] is List ? data['schedule'] as List : [];
-    showModalBottomSheet(
+  String _timeText(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute ${time.period == DayPeriod.am ? 'AM' : 'PM'}';
+  }
+
+  Future<Map<String, dynamic>?> _addScheduleDialog(
+    List<Map<String, dynamic>> classes,
+  ) async {
+    final subjectController = TextEditingController();
+    final roomController = TextEditingController();
+    final classController = TextEditingController();
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    var day = days.first;
+    final classNames = classes
+        .map((item) => item['name']?.toString() ?? '')
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+    var selectedClass = classNames.isEmpty ? null : classNames.first;
+    var start = const TimeOfDay(hour: 8, minute: 0);
+    var end = const TimeOfDay(hour: 9, minute: 0);
+
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: SizedBox(
-            height: 320,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            8,
+            20,
+            MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Full Schedule',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  'Add Schedule',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 16),
-                Expanded(
-                  child: schedule.isEmpty
-                      ? const Center(child: Text('No schedule added yet.'))
-                      : ListView(
-                          children: schedule
-                              .map(
-                                (item) => ListTile(
-                                  leading: const Icon(
-                                    Icons.calendar_today_outlined,
-                                    color: Color(0xFF2563EB),
-                                  ),
-                                  title: Text(
-                                    item is Map
-                                        ? '${item['subject'] ?? ''}'
-                                        : item.toString(),
-                                  ),
-                                  subtitle: item is Map
-                                      ? Text(
-                                          '${item['day'] ?? ''} ${item['time'] ?? ''} ${item['className'] ?? ''}',
-                                        )
-                                      : null,
-                                ),
-                              )
-                              .toList(),
-                        ),
+                DropdownButtonFormField<String>(
+                  value: day,
+                  decoration: const InputDecoration(labelText: 'Day'),
+                  items: days
+                      .map(
+                        (item) =>
+                            DropdownMenuItem(value: item, child: Text(item)),
+                      )
+                      .toList(),
+                  onChanged: (value) => setModalState(() => day = value!),
+                ),
+                const SizedBox(height: 12),
+                if (classNames.isEmpty)
+                  TextField(
+                    controller: classController,
+                    decoration: const InputDecoration(
+                      labelText: 'Class',
+                      hintText: 'e.g. Grade 10A',
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    value: selectedClass,
+                    decoration: const InputDecoration(labelText: 'Class'),
+                    items: classNames
+                        .map(
+                          (item) =>
+                              DropdownMenuItem(value: item, child: Text(item)),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setModalState(() => selectedClass = value),
+                  ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: subjectController,
+                  decoration: const InputDecoration(
+                    labelText: 'Subject',
+                    hintText: 'e.g. Mathematics',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: start,
+                          );
+                          if (picked != null)
+                            setModalState(() => start = picked);
+                        },
+                        icon: const Icon(Icons.access_time),
+                        label: Text(_timeText(start)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: end,
+                          );
+                          if (picked != null) setModalState(() => end = picked);
+                        },
+                        icon: const Icon(Icons.schedule),
+                        label: Text(_timeText(end)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: roomController,
+                  decoration: const InputDecoration(
+                    labelText: 'Room (optional)',
+                    hintText: 'e.g. Room 04',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final className =
+                          selectedClass ?? classController.text.trim();
+                      if (className.isEmpty ||
+                          subjectController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Select a class and enter a subject.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      Navigator.pop(context, {
+                        'day': day,
+                        'className': className,
+                        'subject': subjectController.text.trim(),
+                        'time': '${_timeText(start)} - ${_timeText(end)}',
+                        'room': roomController.text.trim(),
+                      });
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Save Schedule'),
+                  ),
                 ),
               ],
             ),
@@ -168,25 +284,154 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         ),
       ),
     );
+    subjectController.dispose();
+    roomController.dispose();
+    classController.dispose();
+    return result;
+  }
+
+  Future<void> _schedule(Map<String, dynamic> data) async {
+    final schedule = (data['schedule'] is List)
+        ? (data['schedule'] as List)
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
+        : <Map<String, dynamic>>[];
+    final classes = (data['assignedClasses'] as List? ?? [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+
+    await showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              height: 440,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Full Schedule',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () async {
+                          final item = await _addScheduleDialog(classes);
+                          if (item == null || !mounted) return;
+                          final uid = FirebaseAuth.instance.currentUser?.uid;
+                          if (uid == null) return;
+                          try {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(uid)
+                                .update({
+                                  'schedule': FieldValue.arrayUnion([item]),
+                                });
+                            schedule.add(item);
+                            setModalState(() {});
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Could not save schedule: $error',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.add_circle_outline),
+                        color: const Color(0xFF4F46E5),
+                        tooltip: 'Add schedule',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: schedule.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No schedule added yet. Tap + to add one.',
+                            ),
+                          )
+                        : ListView(
+                            children: schedule
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => ListTile(
+                                    leading: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: Color(0xFF2563EB),
+                                    ),
+                                    title: Text(
+                                      '${entry.value['subject'] ?? 'Subject'} - ${entry.value['className'] ?? 'Class'}',
+                                    ),
+                                    subtitle: Text(
+                                      '${entry.value['day'] ?? ''} - ${entry.value['time'] ?? ''}${(entry.value['room'] ?? '').toString().isEmpty ? '' : ' - ${entry.value['room']}'}',
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete_outline),
+                                      color: const Color(0xFFEF4444),
+                                      onPressed: () async {
+                                        final uid = FirebaseAuth
+                                            .instance
+                                            .currentUser
+                                            ?.uid;
+                                        if (uid == null) return;
+                                        schedule.removeAt(entry.key);
+                                        await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(uid)
+                                            .update({'schedule': schedule});
+                                        setModalState(() {});
+                                      },
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (mounted) setState(() => _data = _load());
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF8FAFC),
-    appBar: AppBar(
-      backgroundColor: const Color(0xFFF8FAFC),
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      title: const Text(
-        'Teacher Profile',
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF0F172A),
-          letterSpacing: -0.5,
-        ),
-      ),
-    ),
+    appBar: widget.isTab
+        ? null
+        : AppBar(
+            backgroundColor: const Color(0xFFF8FAFC),
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'Teacher Profile',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
     body: FutureBuilder<Map<String, dynamic>>(
       future: _data,
       builder: (context, snapshot) {
@@ -310,29 +555,27 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 ],
                 const SizedBox(height: 24),
                 _section(
-                  'Personal Info',
+                  'Personal Details',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _detail(
-                        'ID Number',
-                        (data['employeeId'] ?? data['uid']).toString(),
-                      ),
                       _detail(
                         'Joined Date',
                         (data['joinedDate'] ?? '').toString(),
                       ),
+                      _detail('Gender', (data['gender'] ?? '').toString()),
+                      _detail('Address', (data['address'] ?? '').toString()),
                     ],
                   ),
-                  icon: Icons.badge_outlined,
+                  icon: Icons.person_outline_rounded,
                 ),
                 _section(
-                  'Contact Info',
+                  'Contact Details',
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _detail('Email', (data['email'] ?? '').toString()),
-                      _detail('Phone Number', (data['phone'] ?? '').toString()),
+                      _detail('Phone', (data['phone'] ?? '').toString()),
                     ],
                   ),
                   icon: Icons.contact_mail_outlined,
@@ -368,7 +611,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                     onPressed: () => _schedule(data),
                     icon: const Icon(Icons.calendar_month_outlined, size: 20),
                     label: const Text(
-                      'View Full Schedule',
+                      'Manage Schedule',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
