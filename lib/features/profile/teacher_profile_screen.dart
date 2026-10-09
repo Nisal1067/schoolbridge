@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../auth/widgets/logout_button.dart';
 import '../attendance/services/attendance_service.dart';
+import '../user_communication/teacher_chat_fab.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
   const TeacherProfileScreen({super.key});
@@ -28,16 +28,16 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   Widget _section(String title, Widget content, {IconData? icon}) => Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.all(20),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
           color: const Color(0xFF0F172A).withValues(alpha: 0.03),
           blurRadius: 15,
           offset: const Offset(0, 4),
-        )
+        ),
       ],
       border: Border.all(color: const Color(0xFFF1F5F9)),
     ),
@@ -49,14 +49,22 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
             if (icon != null) ...[
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: const Color(0xFF4F46E5)),
               ),
               const SizedBox(width: 12),
             ],
             Text(
               title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.2,
+              ),
             ),
           ],
         ),
@@ -84,7 +92,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           ),
         ],
       ),
-      style: const TextStyle(fontSize: 12),
+      style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
     ),
   );
 
@@ -171,9 +179,13 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
       elevation: 0,
       title: const Text(
         'Teacher Profile',
-        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF0F172A),
+          letterSpacing: -0.5,
+        ),
       ),
-      actions: const [LogoutButton()],
     ),
     body: FutureBuilder<Map<String, dynamic>>(
       future: _data,
@@ -204,7 +216,12 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                kTeacherFabClearance,
+              ),
               children: [
                 Center(
                   child: Container(
@@ -220,7 +237,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       ],
                     ),
                     child: CircleAvatar(
-                      radius: 46,
+                      radius: 44,
                       backgroundColor: const Color(0xFFEEF2FF),
                       child: photo.isEmpty
                           ? Text(
@@ -234,8 +251,8 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                           : ClipOval(
                               child: Image.network(
                                 photo,
-                                width: 92,
-                                height: 92,
+                                width: 88,
+                                height: 88,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, error, stack) =>
                                     Text(initials),
@@ -248,7 +265,12 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 Text(
                   name,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.4,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -256,21 +278,32 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       ? 'Teacher'
                       : '${subjects.join(' / ')} Teacher',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (data['designation'] is String &&
                     (data['designation'] as String).isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         data['designation'] as String,
-                        style: const TextStyle(color: Color(0xFF4F46E5), fontSize: 11, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: Color(0xFF4F46E5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -281,8 +314,14 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _detail('ID Number', (data['employeeId'] ?? data['uid']).toString()),
-                      _detail('Joined Date', (data['joinedDate'] ?? '').toString()),
+                      _detail(
+                        'ID Number',
+                        (data['employeeId'] ?? data['uid']).toString(),
+                      ),
+                      _detail(
+                        'Joined Date',
+                        (data['joinedDate'] ?? '').toString(),
+                      ),
                     ],
                   ),
                   icon: Icons.badge_outlined,
@@ -298,8 +337,20 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   ),
                   icon: Icons.contact_mail_outlined,
                 ),
-                _section('Specialized Subjects', _chips(subjects), icon: Icons.book_outlined),
-                _section('Assigned Classes', _chips((data['assignedClasses'] as List).map((c) => c['name'].toString()).toList()), icon: Icons.class_outlined),
+                _section(
+                  'Specialized Subjects',
+                  _chips(subjects),
+                  icon: Icons.book_outlined,
+                ),
+                _section(
+                  'Assigned Classes',
+                  _chips(
+                    (data['assignedClasses'] as List)
+                        .map((c) => c['name'].toString())
+                        .toList(),
+                  ),
+                  icon: Icons.class_outlined,
+                ),
                 const SizedBox(height: 12),
                 Container(
                   height: 52,
@@ -316,7 +367,13 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   child: FilledButton.icon(
                     onPressed: () => _schedule(data),
                     icon: const Icon(Icons.calendar_month_outlined, size: 20),
-                    label: const Text('View Full Schedule', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    label: const Text(
+                      'View Full Schedule',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF4F46E5),
                       shape: RoundedRectangleBorder(

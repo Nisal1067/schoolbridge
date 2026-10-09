@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/homework.dart';
 import '../models/submission.dart';
 import '../services/homework_announcement_service.dart';
+import '../widgets/attachment_widgets.dart';
 import '../widgets/task_widgets.dart';
 import 'add_homework_screen.dart';
 import 'homework_dashboard_screen.dart';
@@ -157,20 +158,16 @@ class _HomeworkDetailScreenState extends State<HomeworkDetailScreen> {
               ],
             ),
           ),
-          const _Card(
+          _Card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Reference Files',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
-                SizedBox(height: 8),
-                // Shows files here once attachments (Firebase Storage) exist.
-                Text(
-                  'No files attached.',
-                  style: TextStyle(fontSize: 14, color: TaskColors.grey),
-                ),
+                const SizedBox(height: 8),
+                AttachmentList(attachments: h.attachments),
               ],
             ),
           ),

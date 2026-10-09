@@ -59,6 +59,7 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
                       friendlyError(
                         snapshot.error!,
                         'Could not load homework. Please try again.',
+                        operation: 'read',
                       ),
                     );
                   }

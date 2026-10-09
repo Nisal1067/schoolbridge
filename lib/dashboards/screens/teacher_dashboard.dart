@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'dart:async';
 
 import '../../auth/widgets/logout_button.dart';
@@ -9,7 +10,7 @@ import '../../features/attendance/attendance_screen.dart';
 import '../../features/profile/teacher_profile_screen.dart';
 import '../../auth/services/session_navigation.dart';
 import '../../features/homework_announcements/homework_announcements_screen.dart';
-import '../../features/user_communication/communication_screen.dart';
+import '../../features/user_communication/teacher_chat_fab.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/notifications/models/in_app_notification.dart';
@@ -30,7 +31,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     'Marks',
     'Tasks',
     'Attendance',
-    'Chat',
     'Profile',
   ];
 
@@ -43,7 +43,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     _notifSub = NotificationService().myNotifications.listen((notifications) {
       if (!mounted) return;
       final unreadCount = notifications.where((n) => !n.isRead).length;
-      if (unreadCount > _lastNotifCount && notifications.isNotEmpty && !notifications.first.isRead) {
+      if (unreadCount > _lastNotifCount &&
+          notifications.isNotEmpty &&
+          !notifications.first.isRead) {
         if (_lastNotifCount != 0) {
           final newNotif = notifications.first;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -53,10 +55,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               backgroundColor: const Color(0xFF4F46E5),
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
-                label: 'View', 
+                label: 'View',
                 textColor: Colors.white,
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  );
                 },
               ),
             ),
@@ -102,7 +109,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           StreamBuilder<List<InAppNotification>>(
             stream: NotificationService().myNotifications,
             builder: (context, snapshot) {
-              final unreadCount = snapshot.data?.where((n) => !n.isRead).length ?? 0;
+              final unreadCount =
+                  snapshot.data?.where((n) => !n.isRead).length ?? 0;
               return Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
@@ -111,10 +119,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
                       );
                     },
-                    icon: const Icon(Icons.notifications_none_rounded, size: 26, color: Color(0xFF0F172A)),
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      size: 26,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                   if (unreadCount > 0)
                     Positioned(
@@ -122,10 +136,17 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       top: 10,
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
                         child: Text(
                           unreadCount > 9 ? '9+' : unreadCount.toString(),
-                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -146,10 +167,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   });
                 },
               )
-            : selectedIndex == 5
-            ? const TeacherProfileScreen()
             : selectedIndex == 4
-            ? const CommunicationScreen()
+            ? const TeacherProfileScreen()
             : selectedIndex == 2
             ? const HomeworkAnnouncementsScreen()
             : selectedIndex == 3
@@ -157,6 +176,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             : _PlaceholderPage(title: pages[selectedIndex]),
       ),
 
+      floatingActionButton: const TeacherChatFab(),
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
@@ -200,11 +220,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             label: 'Attendance',
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chat',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
@@ -215,11 +230,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 }
 
-class _TeacherHome extends StatelessWidget {
+class _TeacherHome extends StatefulWidget {
   final ValueChanged<int> onNavigate;
 
   const _TeacherHome({required this.onNavigate});
 
+  @override
+  State<_TeacherHome> createState() => _TeacherHomeState();
+}
+
+class _TeacherHomeState extends State<_TeacherHome> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -232,7 +252,10 @@ class _TeacherHome extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF818CF8), Color(0xFF6366F1)], // Premium indigo gradient
+                  colors: [
+                    Color(0xFF818CF8),
+                    Color(0xFF6366F1),
+                  ], // Premium indigo gradient
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -248,21 +271,29 @@ class _TeacherHome extends StatelessWidget {
               child: Builder(
                 builder: (context) {
                   final user = FirebaseAuth.instance.currentUser;
-                  final defaultEmailName = user?.email != null && user!.email!.contains('@')
+                  final defaultEmailName =
+                      user?.email != null && user!.email!.contains('@')
                       ? user.email!.split('@').first
                       : 'Teacher';
                   String fallbackName = user?.displayName ?? defaultEmailName;
                   if (fallbackName.isNotEmpty && !fallbackName.contains(' ')) {
-                    fallbackName = fallbackName[0].toUpperCase() + fallbackName.substring(1);
+                    fallbackName =
+                        fallbackName[0].toUpperCase() +
+                        fallbackName.substring(1);
                   }
 
                   return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user?.uid)
+                        .snapshots(),
                     builder: (context, snapshot) {
                       String teacherName = fallbackName;
                       if (snapshot.hasData && snapshot.data!.exists) {
                         final data = snapshot.data!.data();
-                        if (data != null && data['name'] != null && data['name'].toString().trim().isNotEmpty) {
+                        if (data != null &&
+                            data['name'] != null &&
+                            data['name'].toString().trim().isNotEmpty) {
                           teacherName = data['name'].toString().trim();
                         }
                       }
@@ -282,7 +313,11 @@ class _TeacherHome extends StatelessWidget {
                           const SizedBox(height: 8),
                           const Text(
                             'Have a productive teaching day!',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       );
@@ -292,7 +327,7 @@ class _TeacherHome extends StatelessWidget {
               ),
             ),
           ),
-          
+
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -301,50 +336,63 @@ class _TeacherHome extends StatelessWidget {
                 children: [
                   const Text(
                     'Quick Actions',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.5,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: _QuickActionCard(
-                        icon: Icons.grading_rounded,
-                        iconColor: const Color(0xFF4F46E5),
-                        iconBg: const Color(0xFFEEF2FF),
-                        title: 'Marks',
-                        subtitle: 'Scores & Results',
-                        onTap: () => onNavigate(1),
-                      )),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.grading_rounded,
+                          iconColor: const Color(0xFF4F46E5),
+                          iconBg: const Color(0xFFEEF2FF),
+                          title: 'Marks',
+                          subtitle: 'Scores & Results',
+                          onTap: () => widget.onNavigate(1),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _QuickActionCard(
-                        icon: Icons.assignment_rounded,
-                        iconColor: const Color(0xFFD97706),
-                        iconBg: const Color(0xFFFEF3C7),
-                        title: 'Homeworks',
-                        subtitle: 'Assignments',
-                        onTap: () => onNavigate(2),
-                      )),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.assignment_rounded,
+                          iconColor: const Color(0xFFD97706),
+                          iconBg: const Color(0xFFFEF3C7),
+                          title: 'Homeworks',
+                          subtitle: 'Assignments',
+                          onTap: () => widget.onNavigate(2),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _QuickActionCard(
-                        icon: Icons.calendar_today_rounded,
-                        iconColor: const Color(0xFF059669),
-                        iconBg: const Color(0xFFD1FAE5),
-                        title: 'Attendance',
-                        subtitle: 'Daily Tracking',
-                        onTap: () => onNavigate(3),
-                      )),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.calendar_today_rounded,
+                          iconColor: const Color(0xFF059669),
+                          iconBg: const Color(0xFFD1FAE5),
+                          title: 'Attendance',
+                          subtitle: 'Daily Tracking',
+                          onTap: () => widget.onNavigate(3),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _QuickActionCard(
-                        icon: Icons.chat_bubble_rounded,
-                        iconColor: const Color(0xFFDB2777),
-                        iconBg: const Color(0xFFFCE7F3),
-                        title: 'Messages',
-                        subtitle: 'Chats',
-                        onTap: () => onNavigate(4),
-                      )),
+                      Expanded(
+                        child: _QuickActionCard(
+                          icon: Icons.chat_bubble_rounded,
+                          iconColor: const Color(0xFFDB2777),
+                          iconBg: const Color(0xFFFCE7F3),
+                          title: 'Messages',
+                          subtitle: 'Chats',
+                          onTap: () => openTeacherChat(context),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -363,27 +411,42 @@ class _TeacherHome extends StatelessWidget {
                     children: [
                       const Text(
                         "Today's Schedule",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
                       ),
                       TextButton(
                         onPressed: () {},
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF4F46E5),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
                         ),
                         child: const Text('See All'),
                       ),
                     ],
                   ),
                   StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(FirebaseAuth.instance.currentUser?.uid)
+                        .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      final data = snapshot.hasData ? snapshot.data!.data() ?? {} : {};
-                      final schedule = data['schedule'] is List ? data['schedule'] as List : [];
-                      
+                      final data = snapshot.hasData
+                          ? snapshot.data!.data() ?? {}
+                          : {};
+                      final schedule = data['schedule'] is List
+                          ? data['schedule'] as List
+                          : [];
+
                       if (schedule.isEmpty) {
                         return Container(
                           width: double.infinity,
@@ -391,16 +454,26 @@ class _TeacherHome extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFF1F5F9))
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
                           ),
                           child: const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.event_available_rounded, size: 40, color: Color(0xFFCBD5E1)),
+                              Icon(
+                                Icons.event_available_rounded,
+                                size: 40,
+                                color: Color(0xFFCBD5E1),
+                              ),
                               SizedBox(height: 12),
-                              Text('No classes scheduled for today', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
-                            ]
-                          )
+                              Text(
+                                'No classes scheduled for today',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         );
                       }
 
@@ -408,16 +481,27 @@ class _TeacherHome extends StatelessWidget {
                         children: schedule.map((item) {
                           if (item is! Map) return const SizedBox.shrink();
                           final time = item['time']?.toString() ?? 'N/A';
-                          final grade = item['className']?.toString() ?? 'Unknown Class';
-                          final subject = item['subject']?.toString() ?? 'General';
+                          final grade =
+                              item['className']?.toString() ?? 'Unknown Class';
+                          final subject =
+                              item['subject']?.toString() ?? 'General';
                           // Give some variety in color based on index or subject
                           final isMath = subject.toLowerCase().contains('math');
                           final isSci = subject.toLowerCase().contains('sci');
-                          final color = isMath ? const Color(0xFF4F46E5) : (isSci ? const Color(0xFFD97706) : const Color(0xFF059669));
-                          
+                          final color = isMath
+                              ? const Color(0xFF4F46E5)
+                              : (isSci
+                                    ? const Color(0xFFD97706)
+                                    : const Color(0xFF059669));
+
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: _ScheduleCard(time: time, grade: grade, subject: subject, color: color),
+                            child: _ScheduleCard(
+                              time: time,
+                              grade: grade,
+                              subject: subject,
+                              color: color,
+                            ),
                           );
                         }).toList(),
                       );
@@ -472,18 +556,30 @@ class _QuickActionCard extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Icon(icon, color: iconColor, size: 24),
             ),
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A), letterSpacing: -0.3),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.3,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -539,12 +635,21 @@ class _ScheduleCard extends StatelessWidget {
               children: [
                 Text(
                   grade,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.3),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.3,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subject,
-                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -558,7 +663,11 @@ class _ScheduleCard extends StatelessWidget {
             ),
             child: Text(
               time,
-              style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w700, fontSize: 12),
+              style: const TextStyle(
+                color: Color(0xFF475569),
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
             ),
           ),
         ],

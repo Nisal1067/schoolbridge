@@ -47,6 +47,8 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
+# Node dependencies
+node_modules/
 # Attachment backend secrets and dependencies
 attachment_backend/node_modules/
 attachment_backend/.env
