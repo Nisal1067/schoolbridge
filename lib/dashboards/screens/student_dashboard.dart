@@ -8,6 +8,9 @@ import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 import '../../features/homework_announcements/student/student_homework_screen.dart';
 
+// MARKS - Import Student Results Screen
+import '../../features/marks/student/student_results_screen.dart';
+
 class StudentDashboard extends StatefulWidget {
   final int initialIndex;
   const StudentDashboard({super.key, this.initialIndex = 0});
@@ -29,7 +32,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
           : AppBar(
               title: const Row(
                 children: [
-                  Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+                  Icon(
+                    Icons.school_rounded,
+                    color: Color(0xFF4F46E5),
+                    size: 28,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'SchoolBridge',
@@ -62,6 +69,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
             )
           : selectedIndex == 1
           ? const SafeArea(child: StudentHomeworkScreen())
+          // MARKS - Open Student Results Screen when Results tab is selected
+          : selectedIndex == 2
+          ? const StudentResultsScreen()
           : PlaceholderPage(title: pages[selectedIndex]),
 
       bottomNavigationBar: NavigationBar(
@@ -70,7 +80,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
           if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ParentAttendanceScreen()),
+              MaterialPageRoute(
+                builder: (context) => const ParentAttendanceScreen(),
+              ),
             );
             return;
           }
