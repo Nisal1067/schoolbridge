@@ -9,7 +9,7 @@ import '../../core/widgets/placeholder.dart';
 import '../../features/attendance/parent_attendance_screen.dart';
 // MARKS - Import Parent Progress Screen
 import '../../features/marks/parent/parent_progress_screen.dart';
-import '../../features/user_communication/communication_screen.dart';
+import '../../features/user_communication/teacher_chat_fab.dart';
 import '../../features/homework_announcements/parent/parent_homework_announcements_screen.dart';
 import '../../features/profile/parent_profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
@@ -29,7 +29,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     'Home',
     'Academic Progress',
     'Attendance',
-    'Chat',
+    'Homework',
     'Profile',
   ];
   StreamSubscription? _notifSub;
@@ -167,10 +167,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
           : selectedIndex == 2
           ? const ParentAttendanceScreen(isTab: true)
           : selectedIndex == 3
-          ? const CommunicationScreen()
+          ? const ParentHomeworkAnnouncementsScreen(isTab: true)
           : selectedIndex == 4
           ? const ParentProfileScreen(isTab: true)
           : PlaceholderPage(title: pages[selectedIndex]),
+      floatingActionButton: const TeacherChatFab(),
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
           splashColor: Colors.transparent,
@@ -202,8 +203,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
               label: 'Attendance',
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              label: 'Chat',
+              icon: Icon(Icons.assignment_outlined),
+              selectedIcon: Icon(Icons.assignment),
+              label: 'Homework',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
@@ -374,13 +376,7 @@ class _ParentHome extends StatelessWidget {
                   primaryColor: const Color(0xFFD97706),
                   backgroundColor: const Color(0xFFFEF3C7),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const ParentHomeworkAnnouncementsScreen(),
-                      ),
-                    );
+                    onNavigate(3);
                   },
                 ),
                 _buildPremiumCard(
@@ -389,7 +385,7 @@ class _ParentHome extends StatelessWidget {
                   icon: Icons.chat_bubble_rounded,
                   primaryColor: const Color(0xFFDC2626),
                   backgroundColor: const Color(0xFFFEE2E2),
-                  onTap: () => onNavigate(3),
+                  onTap: () => openTeacherChat(context),
                 ),
               ],
             ),
