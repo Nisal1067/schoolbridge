@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../attendance/services/attendance_service.dart';
 import '../user_communication/teacher_chat_fab.dart';
+import 'profile_photo_avatar.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
   final bool isTab;
@@ -44,7 +45,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+              Icon(icon, size: 20, color: const Color(0xFF1E40AF)),
               const SizedBox(width: 8),
             ],
             Text(
@@ -53,7 +54,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF0F172A),
-                letterSpacing: -0.2,
+                letterSpacing: 0,
               ),
             ),
           ],
@@ -166,7 +167,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: day,
+                  initialValue: day,
                   decoration: const InputDecoration(labelText: 'Day'),
                   items: days
                       .map(
@@ -187,7 +188,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   )
                 else
                   DropdownButtonFormField<String>(
-                    value: selectedClass,
+                    initialValue: selectedClass,
                     decoration: const InputDecoration(labelText: 'Class'),
                     items: classNames
                         .map(
@@ -216,8 +217,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                             context: context,
                             initialTime: start,
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setModalState(() => start = picked);
+                          }
                         },
                         icon: const Icon(Icons.access_time),
                         label: Text(_timeText(start)),
@@ -231,7 +233,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                             context: context,
                             initialTime: end,
                           );
-                          if (picked != null) setModalState(() => end = picked);
+                          if (picked != null) {
+                            setModalState(() => end = picked);
+                          }
                         },
                         icon: const Icon(Icons.schedule),
                         label: Text(_timeText(end)),
@@ -328,9 +332,13 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       IconButton(
                         onPressed: () async {
                           final item = await _addScheduleDialog(classes);
-                          if (item == null || !mounted) return;
+                          if (item == null || !mounted) {
+                            return;
+                          }
                           final uid = FirebaseAuth.instance.currentUser?.uid;
-                          if (uid == null) return;
+                          if (uid == null) {
+                            return;
+                          }
                           try {
                             await FirebaseFirestore.instance
                                 .collection('users')
@@ -341,7 +349,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                             schedule.add(item);
                             setModalState(() {});
                           } catch (error) {
-                            if (!context.mounted) return;
+                            if (!context.mounted) {
+                              return;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -352,7 +362,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                           }
                         },
                         icon: const Icon(Icons.add_circle_outline),
-                        color: const Color(0xFF4F46E5),
+                        color: const Color(0xFF1E40AF),
                         tooltip: 'Add schedule',
                       ),
                     ],
@@ -389,7 +399,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                                             .instance
                                             .currentUser
                                             ?.uid;
-                                        if (uid == null) return;
+                                        if (uid == null) {
+                                          return;
+                                        }
                                         schedule.removeAt(entry.key);
                                         await FirebaseFirestore.instance
                                             .collection('users')
@@ -410,7 +422,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         ),
       ),
     );
-    if (mounted) setState(() => _data = _load());
+    if (mounted) {
+      setState(() {
+        _data = _load();
+      });
+    }
   }
 
   @override
@@ -428,7 +444,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF0F172A),
-                letterSpacing: -0.5,
+                letterSpacing: 0,
               ),
             ),
           ),
@@ -438,7 +454,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         if (snapshot.hasError) {
           return Center(
             child: TextButton(
-              onPressed: () => setState(() => _data = _load()),
+              onPressed: () {
+                setState(() {
+                  _data = _load();
+                });
+              },
               child: const Text('Could not load profile. Retry'),
             ),
           );
@@ -456,7 +476,6 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
             .join()
             .toUpperCase();
         final subjects = _subjects(data['subjects'] ?? data['subject']);
-        final photo = (data['photoUrl'] ?? '').toString();
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
@@ -475,34 +494,19 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+                          color: const Color(0xFF1E40AF).withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 44,
-                      backgroundColor: const Color(0xFFEEF2FF),
-                      child: photo.isEmpty
-                          ? Text(
-                              initials,
-                              style: const TextStyle(
-                                color: Color(0xFF4F46E5),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 26,
-                              ),
-                            )
-                          : ClipOval(
-                              child: Image.network(
-                                photo,
-                                width: 88,
-                                height: 88,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, error, stack) =>
-                                    Text(initials),
-                              ),
-                            ),
+                    child: ProfilePhotoAvatar(
+                      initials: initials,
+                      onChanged: () {
+                        setState(() {
+                          _data = _load();
+                        });
+                      },
                     ),
                   ),
                 ),
@@ -514,7 +518,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F172A),
-                    letterSpacing: -0.4,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -545,7 +549,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       child: Text(
                         data['designation'] as String,
                         style: const TextStyle(
-                          color: Color(0xFF4F46E5),
+                          color: Color(0xFF1E40AF),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -601,7 +605,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF4F46E5).withValues(alpha: 0.25),
+                        color: const Color(0xFF1E40AF).withValues(alpha: 0.25),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -618,7 +622,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       ),
                     ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF4F46E5),
+                      backgroundColor: const Color(0xFF1E40AF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

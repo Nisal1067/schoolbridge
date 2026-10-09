@@ -278,7 +278,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
               fontSize: 48,
               fontWeight: FontWeight.w800,
               color: Colors.white,
-              letterSpacing: -1,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 16),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../auth/widgets/logout_button.dart';
+import '../../../core/theme/app_theme.dart';
 
 class SchoolBridgeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -22,23 +23,17 @@ class SchoolBridgeAppBar extends StatelessWidget implements PreferredSizeWidget 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: AppColors.background,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       centerTitle: false,
       titleSpacing: showBackButton ? 0 : 16,
-      shape: const Border(
-        bottom: BorderSide(
-          color: Color(0xFFE5E7EB),
-          width: 1,
-        ),
-      ),
       leading: IconButton(
         icon: Icon(
           showBackButton
               ? Icons.arrow_back_ios_new_rounded
               : Icons.menu_rounded,
-          color: const Color(0xFF1E293B),
+          color: AppColors.textDark,
           size: 22,
         ),
         onPressed: onLeadingPressed ??
@@ -53,9 +48,10 @@ class SchoolBridgeAppBar extends StatelessWidget implements PreferredSizeWidget 
       title: Text(
         title,
         style: const TextStyle(
-          color: Color(0xFF1E293B),
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
+          color: AppColors.textDark,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0,
         ),
       ),
       actions: actions ??

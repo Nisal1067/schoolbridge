@@ -53,7 +53,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             SnackBar(
               content: Text('${newNotif.title}\n${newNotif.body}'),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF4F46E5),
+              backgroundColor: const Color(0xFF1E40AF),
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
                 label: 'View',
@@ -93,7 +93,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         surfaceTintColor: Colors.transparent,
         title: const Row(
           children: [
-            Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+            Icon(Icons.school_rounded, color: Color(0xFF1E40AF), size: 28),
             SizedBox(width: 8),
             Text(
               'SchoolBridge',
@@ -101,7 +101,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 color: Color(0xFF0F172A),
                 fontWeight: FontWeight.w800,
                 fontSize: 22,
-                letterSpacing: -0.5,
+                letterSpacing: 0,
               ),
             ),
           ],
@@ -194,7 +194,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 15,
-        indicatorColor: const Color(0xFFE0E7FF),
+        indicatorColor: const Color(0xFFDBEAFE),
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
           SessionNavigation.remember('teacher', {'index': index});
@@ -365,16 +365,16 @@ class _TeacherHomeState extends State<_TeacherHome> {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [
-                    Color(0xFF818CF8),
-                    Color(0xFF6366F1),
-                  ], // Premium indigo gradient
+                    Color(0xFF1E40AF),
+                    Color(0xFF3B82F6),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    color: const Color(0xFF1E40AF).withValues(alpha: 0.28),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -418,7 +418,7 @@ class _TeacherHomeState extends State<_TeacherHome> {
                               color: Colors.white,
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
+                              letterSpacing: 0,
                               height: 1.1,
                             ),
                           ),
@@ -452,7 +452,7 @@ class _TeacherHomeState extends State<_TeacherHome> {
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0F172A),
-                      letterSpacing: -0.5,
+                      letterSpacing: 0,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -461,8 +461,8 @@ class _TeacherHomeState extends State<_TeacherHome> {
                       Expanded(
                         child: _QuickActionCard(
                           icon: Icons.grading_rounded,
-                          iconColor: const Color(0xFF4F46E5),
-                          iconBg: const Color(0xFFEEF2FF),
+                          iconColor: const Color(0xFF1E40AF),
+                          iconBg: const Color(0xFFDBEAFE),
                           title: 'Marks',
                           subtitle: 'Scores & Results',
                           onTap: () => widget.onNavigate(1),
@@ -527,13 +527,13 @@ class _TeacherHomeState extends State<_TeacherHome> {
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF0F172A),
-                          letterSpacing: -0.5,
+                          letterSpacing: 0,
                         ),
                       ),
                       TextButton(
                         onPressed: _showAllSchedule,
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: const Color(0xFF1E40AF),
                           textStyle: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
@@ -616,7 +616,7 @@ class _TeacherHomeState extends State<_TeacherHome> {
                           final isMath = subject.toLowerCase().contains('math');
                           final isSci = subject.toLowerCase().contains('sci');
                           final color = isMath
-                              ? const Color(0xFF4F46E5)
+                              ? const Color(0xFF1E40AF)
                               : (isSci
                                     ? const Color(0xFFD97706)
                                     : const Color(0xFF059669));
@@ -696,7 +696,7 @@ class _QuickActionCard extends StatelessWidget {
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
                 color: Color(0xFF0F172A),
-                letterSpacing: -0.3,
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: 4),
@@ -766,7 +766,7 @@ class _ScheduleCard extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF0F172A),
-                    letterSpacing: -0.3,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(height: 4),

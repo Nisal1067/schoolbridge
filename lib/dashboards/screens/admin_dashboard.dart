@@ -55,7 +55,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
-                color: const Color(0xFF2563EB),
+                color: const Color(0xFF1E40AF),
                 child: Builder(
                   builder: (context) {
                     final user = FirebaseAuth.instance.currentUser;
@@ -201,12 +201,12 @@ class _AdminHome extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFDCEBFE),
+              color: const Color(0xFFDBEAFE),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
-              color: const Color(0xFF2563EB),
+              color: const Color(0xFF1E40AF),
               size: 22,
             ),
           ),
@@ -266,13 +266,13 @@ class _AdminHome extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCEBFE),
+                    color: const Color(0xFFDBEAFE),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
                     icon,
-                    color: const Color(0xFF2563EB),
+                    color: const Color(0xFF1E40AF),
                     size: 20,
                   ),
                 ),
@@ -452,7 +452,7 @@ class _AdminHome extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF2563EB),
+                              color: Color(0xFF1E40AF),
                             ),
                           ),
                           SizedBox(height: 4),

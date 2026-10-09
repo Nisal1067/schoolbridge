@@ -47,7 +47,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 children: [
                   Icon(
                     Icons.school_rounded,
-                    color: Color(0xFF4F46E5),
+                    color: AppColors.primary,
                     size: 28,
                   ),
                   SizedBox(width: 8),
@@ -57,7 +57,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       color: Color(0xFF0F172A),
                       fontWeight: FontWeight.w800,
                       fontSize: 22,
-                      letterSpacing: -0.5,
+                      letterSpacing: 0,
                     ),
                   ),
                 ],
@@ -105,7 +105,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
           elevation: 15,
-          indicatorColor: const Color(0xFFE0E7FF),
+          indicatorColor: const Color(0xFFDBEAFE),
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
             if (index == 3) {
@@ -214,7 +214,7 @@ class _StudentHomeState extends State<_StudentHome> {
                       color: Colors.white,
                       fontSize: 27,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
+                      letterSpacing: 0,
                       height: 1.1,
                     ),
                   ),
@@ -240,7 +240,7 @@ class _StudentHomeState extends State<_StudentHome> {
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
-                  letterSpacing: -0.5,
+                  letterSpacing: 0,
                 ),
               ),
             ),
@@ -255,7 +255,7 @@ class _StudentHomeState extends State<_StudentHome> {
               children: [
                 _StudentQuickActionCard(
                   icon: Icons.assignment_rounded,
-                  iconColor: const Color(0xFF4F46E5),
+                  iconColor: AppColors.primary,
                   iconBackground: const Color(0xFFEEF2FF),
                   title: 'Homework',
                   subtitle: 'View assignments',

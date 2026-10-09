@@ -108,7 +108,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             color: Color(0xFF0F172A),
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            letterSpacing: -0.3,
+            letterSpacing: 0,
           ),
         ),
         actions: [
@@ -390,7 +390,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       Expanded(
                                         child: Text(
                                           entry.key,
-                                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: 0),
                                         ),
                                       ),
                                       _actionButton(

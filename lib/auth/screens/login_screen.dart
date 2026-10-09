@@ -78,9 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(error.message),
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } on AuthException catch (error) {
@@ -90,9 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(error.message),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
@@ -102,9 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text('Login failed: ${e.toString()}'),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } finally {
@@ -124,9 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             title: Row(
               children: [
@@ -136,11 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
-                    Icons.lock_reset_rounded,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
+                  child: const Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 24),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -162,20 +150,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Text(
                     'Enter your registered email address and we will send you a secure password reset link.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
-                      height: 1.4,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
                   ),
                   const SizedBox(height: 16),
 
                   // Selected role hint
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
@@ -183,19 +164,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.person_outline,
-                          size: 14,
-                          color: Color(0xFF475569),
-                        ),
+                        const Icon(Icons.person_outline, size: 14, color: Color(0xFF475569)),
                         const SizedBox(width: 6),
                         Text(
                           'Target Role: ${selectedRole.displayName}',
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF475569),
-                          ),
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
                         ),
                       ],
                     ),
@@ -204,11 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const Text(
                     'Account Email',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -230,15 +199,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: AppColors.primary,
-                          width: 1.5,
-                        ),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
 
@@ -253,19 +216,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.error_outline_rounded,
-                            color: Color(0xFFEF4444),
-                            size: 16,
-                          ),
+                          const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 16),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               resetError!,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFFEF4444),
-                              ),
+                              style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444)),
                             ),
                           ),
                         ],
@@ -278,10 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Color(0xFF64748B)),
-                ),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
               ),
               ElevatedButton(
                 onPressed: isSubmitting
@@ -289,9 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     : () async {
                         final email = resetEmailController.text.trim();
                         if (email.isEmpty) {
-                          setDialogState(
-                            () => resetError = 'Please enter an email address.',
-                          );
+                          setDialogState(() => resetError = 'Please enter an email address.');
                           return;
                         }
 
@@ -324,27 +275,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: isSubmitting
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text(
-                        'Send Reset Link',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                    : const Text('Send Reset Link', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );
@@ -389,11 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               'A password reset link has been dispatched to $email. Please check your inbox (and spam folder) to set a new password.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF64748B),
-                height: 1.4,
-              ),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -405,14 +341,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -424,252 +355,205 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6FF),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 54),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF315EDB), Color(0xFF6D5BEA)],
-                  ),
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF315EDB).withValues(alpha: 0.25),
-                      blurRadius: 22,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: const Column(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF8FAFC),
+              Color(0xFFEFF6FF),
+              Color(0xFFDBEAFE),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Color(0x33FFFFFF),
-                      child: Icon(
-                        Icons.school_rounded,
-                        size: 36,
-                        color: Colors.white,
+                    const _LoginHero(),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: Colors.white, width: 1.4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0F172A).withValues(
+                              alpha: 0.08,
+                            ),
+                            blurRadius: 30,
+                            offset: const Offset(0, 18),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(height: 14),
-                    Text(
-                      'Welcome to',
-                      style: TextStyle(
-                        color: Color(0xDDFFFFFF),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'SchoolBridge',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.8,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Learn, connect, and grow together',
-                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(0, -28),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Sign in to continue',
-                        style: TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Choose your account type and enter your details.',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'Account type',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155),
-                        ),
-                      ),
-                      const SizedBox(height: 9),
-                      Row(
-                        children: UserRole.values
-                            .map(
-                              (role) => Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 3,
-                                  ),
-                                  child: _RoleButton(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Sign in',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontSize: 24),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Choose your role and continue to your workspace.',
+                            style: TextStyle(
+                              color: AppColors.textGrey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: UserRole.values
+                                .map(
+                                  (role) => _RoleButton(
                                     role: role,
                                     selected: selectedRole == role,
-                                    onTap: () =>
-                                        setState(() => selectedRole = role),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: _inputDecoration(
-                          hint: 'Email address',
-                          icon: Icons.mail_outline_rounded,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: passwordController,
-                        obscureText: hidePassword,
-                        decoration: _inputDecoration(
-                          hint: 'Password',
-                          icon: Icons.lock_outline_rounded,
-                          suffix: IconButton(
-                            onPressed: () =>
-                                setState(() => hidePassword = !hidePassword),
-                            icon: Icon(
-                              hidePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: _showForgotPasswordDialog,
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          child: const Text('Forgot password?'),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          onPressed: isLoading ? null : login,
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                                    onTap: () {
+                                      setState(() {
+                                        selectedRole = role;
+                                      });
+                                    },
                                   ),
                                 )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Sign In',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.arrow_forward_rounded, size: 20),
-                                  ],
+                                .toList(),
+                          ),
+                          const SizedBox(height: 22),
+                          TextField(
+                            controller: emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email Address',
+                              hintText: 'name@schoolbridge.lk',
+                              prefixIcon: Icon(Icons.mail_outline_rounded),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: passwordController,
+                            obscureText: hidePassword,
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon:
+                                  const Icon(Icons.lock_outline_rounded),
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    hidePassword = !hidePassword;
+                                  });
+                                },
+                                icon: Icon(
+                                  hidePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
                                 ),
-                        ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _showForgotPasswordDialog,
+                              child: const Text('Forgot Password?'),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: isLoading ? null : login,
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const Text(
-                'Secure access to your SchoolBridge account',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  InputDecoration _inputDecoration({
-    required String hint,
-    required IconData icon,
-    Widget? suffix,
-  }) {
-    return InputDecoration(
-      hintText: hint,
-      prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
-      suffixIcon: suffix,
-      filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
+class _LoginHero extends StatelessWidget {
+  const _LoginHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.secondary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.24),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.school_rounded,
+            size: 38,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 18),
+        const Text(
+          'SchoolBridge',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textDark,
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'A smarter school portal for every role.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textGrey,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -705,22 +589,23 @@ class _RoleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
+        width: 92,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: selected ? const Color(0xFFDBEAFE) : AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? AppColors.primary : const Color(0xFFE2E8F0),
+            color: selected ? AppColors.primary : AppColors.border,
           ),
         ),
         child: Column(
           children: [
             Icon(
               icon,
-              size: 20,
-              color: selected ? Colors.white : AppColors.textGrey,
+              size: 21,
+              color: selected ? AppColors.primaryDark : AppColors.textGrey,
             ),
 
             const SizedBox(height: 6),
@@ -729,8 +614,8 @@ class _RoleButton extends StatelessWidget {
               role.displayName,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                color: selected ? Colors.white : AppColors.textGrey,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                color: selected ? AppColors.primaryDark : AppColors.textGrey,
               ),
             ),
           ],

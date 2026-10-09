@@ -50,7 +50,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             SnackBar(
               content: Text('${newNotif.title}\n${newNotif.body}'),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF4F46E5),
+              backgroundColor: const Color(0xFF1E40AF),
               duration: const Duration(seconds: 4),
               action: SnackBarAction(
                 label: 'View',
@@ -89,7 +89,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         surfaceTintColor: Colors.transparent,
         title: const Row(
           children: [
-            Icon(Icons.school_rounded, color: Color(0xFF4F46E5), size: 28),
+            Icon(Icons.school_rounded, color: Color(0xFF1E40AF), size: 28),
             SizedBox(width: 8),
             Text(
               'SchoolBridge',
@@ -97,7 +97,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 color: Color(0xFF0F172A),
                 fontWeight: FontWeight.w800,
                 fontSize: 22,
-                letterSpacing: -0.5,
+                letterSpacing: 0,
               ),
             ),
           ],
@@ -181,7 +181,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
           elevation: 15,
-          indicatorColor: const Color(0xFFE0E7FF),
+          indicatorColor: const Color(0xFFDBEAFE),
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
             setState(() {
@@ -270,7 +270,7 @@ class _ParentHome extends StatelessWidget {
                             color: Colors.white,
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
+                            letterSpacing: 0,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -309,7 +309,7 @@ class _ParentHome extends StatelessWidget {
                               color: Color(0xFF0F172A),
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
+                              letterSpacing: 0,
                               height: 1.1,
                             ),
                           ),
@@ -445,8 +445,8 @@ class _ParentHome extends StatelessWidget {
                 'Schedule for the parent-teacher meeting has been published.',
                 'Oct 04, 2026',
                 Icons.groups_rounded,
-                const Color(0xFF7C3AED),
-                const Color(0xFFF5F3FF),
+                const Color(0xFF3B82F6),
+                const Color(0xFFEFF6FF),
               ),
               _buildAnnouncementCard(
                 context,

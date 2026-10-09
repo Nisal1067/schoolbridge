@@ -50,7 +50,7 @@ class AdminBottomNavBar extends StatelessWidget {
                 vertical: 6,
               ),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFEBF3FE) : Colors.transparent,
+                color: isSelected ? const Color(0xFFDBEAFE) : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -60,7 +60,7 @@ class AdminBottomNavBar extends StatelessWidget {
                     item.icon,
                     size: 22,
                     color: isSelected
-                        ? const Color(0xFF2563EB)
+                        ? const Color(0xFF1E40AF)
                         : const Color(0xFF475569),
                   ),
                   const SizedBox(height: 3),
@@ -70,7 +70,7 @@ class AdminBottomNavBar extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                       color: isSelected
-                          ? const Color(0xFF2563EB)
+                          ? const Color(0xFF1E40AF)
                           : const Color(0xFF64748B),
                     ),
                   ),

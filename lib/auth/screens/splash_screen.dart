@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../services/session_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -24,7 +23,9 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       final results = await Future.wait([
         SessionNavigation.restore(),
-        Future.delayed(const Duration(seconds: 4)), // Increased splash duration to 4 seconds
+        Future.delayed(
+          const Duration(seconds: 4),
+        ), // Increased splash duration to 4 seconds
       ]);
       final page = results[0] as Widget;
       if (!mounted) return;
@@ -58,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: Container(
@@ -78,26 +79,20 @@ class _SplashScreenState extends State<SplashScreen> {
             builder: (context, value, child) {
               return Transform.translate(
                 offset: Offset(0, 20 * (1 - value)),
-                child: Opacity(
-                  opacity: value,
-                  child: child,
-                ),
+                child: Opacity(opacity: value, child: child),
               );
             },
             child: Column(
               children: [
                 const Spacer(flex: 3),
-                
+
                 // App Icon (Animated Scale)
                 TweenAnimationBuilder<double>(
                   tween: Tween<double>(begin: 0.8, end: 1.0),
                   duration: const Duration(milliseconds: 2000),
                   curve: Curves.elasticOut,
                   builder: (context, scale, child) {
-                    return Transform.scale(
-                      scale: scale,
-                      child: child,
-                    );
+                    return Transform.scale(scale: scale, child: child);
                   },
                   child: Container(
                     width: 90,
@@ -110,10 +105,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         width: 1.5,
                       ),
                       boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x332563EB),
-                          blurRadius: 30,
-                        ),
+                        BoxShadow(color: Color(0x332563EB), blurRadius: 30),
                       ],
                     ),
                     child: Center(
@@ -148,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     color: Colors.white,
                     fontSize: 40,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: -1.0,
+                    letterSpacing: 0,
                   ),
                 ),
 
@@ -172,7 +164,10 @@ class _SplashScreenState extends State<SplashScreen> {
                   duration: const Duration(milliseconds: 1000),
                   builder: (context, opacity, child) {
                     return Opacity(
-                      opacity: (opacity * 2).clamp(0.0, 1.0), // Fades in and stays
+                      opacity: (opacity * 2).clamp(
+                        0.0,
+                        1.0,
+                      ), // Fades in and stays
                       child: const Text(
                         'SECURING CONNECTION...',
                         style: TextStyle(
@@ -239,7 +234,11 @@ class _SplashScreenState extends State<SplashScreen> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.cancel_outlined, size: 12, color: Color(0xFF475569)),
+                    Icon(
+                      Icons.cancel_outlined,
+                      size: 12,
+                      color: Color(0xFF475569),
+                    ),
                     SizedBox(width: 4),
                     Text(
                       'ENTERPRISE GRADE PROTECTION',
@@ -261,5 +260,4 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-
 }
