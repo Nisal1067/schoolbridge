@@ -9,7 +9,13 @@ import 'parent_attendance_report_screen.dart';
 
 class ParentAttendanceScreen extends StatefulWidget {
   final bool isTab;
-  const ParentAttendanceScreen({super.key, this.isTab = false});
+  final bool studentLayout;
+
+  const ParentAttendanceScreen({
+    super.key,
+    this.isTab = false,
+    this.studentLayout = false,
+  });
 
   @override
   State<ParentAttendanceScreen> createState() => _ParentAttendanceScreenState();
@@ -22,38 +28,42 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      bottomNavigationBar: widget.isTab ? null : AttendanceNavigation(),
+      bottomNavigationBar: widget.isTab
+          ? null
+          : AttendanceNavigation(studentLayout: widget.studentLayout),
 
-      appBar: widget.isTab ? null : AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 19,
-            color: Color(0xFF2F67EA),
-          ),
-        ),
-        title: const Text(
-          'Attendance',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF17212F),
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.file_download_outlined,
-              color: Color(0xFF2F67EA),
+      appBar: widget.isTab
+          ? null
+          : AppBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 19,
+                  color: Color(0xFF2F67EA),
+                ),
+              ),
+              title: const Text(
+                'Attendance',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF17212F),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.file_download_outlined,
+                    color: Color(0xFF2F67EA),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
 
       body: StudentAttendanceView(
         builder: (student, records) {
@@ -146,7 +156,11 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
                   if (filtered.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(12),
-                      child: Text(selectedView == 0 ? 'No attendance recorded for this month.' : 'No attendance recorded for this term.'),
+                      child: Text(
+                        selectedView == 0
+                            ? 'No attendance recorded for this month.'
+                            : 'No attendance recorded for this term.',
+                      ),
                     ),
                   _buildReportButton(context, student['id'] as String),
                 ],
@@ -206,7 +220,9 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           gradient: selected
-              ? const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF2563EB)])
+              ? const LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                )
               : null,
           borderRadius: BorderRadius.circular(10),
         ),

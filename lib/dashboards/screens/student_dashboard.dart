@@ -81,7 +81,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ParentAttendanceScreen(),
+                builder: (context) =>
+                    const ParentAttendanceScreen(studentLayout: true),
               ),
             );
             return;
@@ -184,7 +185,8 @@ class _StudentHome extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ParentAttendanceScreen(),
+                builder: (context) =>
+                    const ParentAttendanceScreen(studentLayout: true),
               ),
             );
           },
