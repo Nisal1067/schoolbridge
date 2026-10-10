@@ -164,6 +164,21 @@ class _MarksScreenState extends State<MarksScreen> {
     return false;
   }
 
+  int get _enteredCount => _students.where((student) {
+    return _entered(student['id'] as String) != null;
+  }).length;
+
+  double get _completion =>
+      _students.isEmpty ? 0 : _enteredCount / _students.length;
+
+  double get _average {
+    final values = [
+      for (final student in _students) ?_entered(student['id'] as String),
+    ];
+    if (values.isEmpty) return 0;
+    return values.reduce((a, b) => a + b) / values.length;
+  }
+
   Future<bool> _confirmDiscard() async {
     if (!_isDirty) return true;
     final discard = await showDialog<bool>(
@@ -295,24 +310,19 @@ class _MarksScreenState extends State<MarksScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Marks',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
+          _buildHero(),
+          const SizedBox(height: 16),
           if (_classes.isEmpty)
             const _Notice('No classes are assigned to you yet.')
           else ...[
             _buildDropdowns(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             if (_error != null) ...[
               _Notice(_error!),
               const SizedBox(height: 12),
             ],
+            _buildProgressCard(),
+            const SizedBox(height: 14),
             _buildTable(),
             const SizedBox(height: 16),
             _buildActions(),
@@ -322,48 +332,222 @@ class _MarksScreenState extends State<MarksScreen> {
     );
   }
 
-  // Class and subject pickers: 41 high, 10 apart.
-  Widget _buildDropdowns() {
-    final busy = _saving || _loadingRoster;
-    return Row(
-      children: [
-        Expanded(
-          child: _DropdownBox<int>(
-            value: _classIndex,
-            enabled: !busy,
-            items: [
-              for (var i = 0; i < _classes.length; i++)
-                DropdownMenuItem(
-                  value: i,
-                  child: Text(
-                    '${_classes[i]['name'] ?? 'Class'}',
-                    overflow: TextOverflow.ellipsis,
+  Widget _buildHero() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E40AF), Color(0xFF2563EB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x241E40AF),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.edit_note_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Marks workspace',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Record and review student performance',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    fontSize: 13,
                   ),
                 ),
-            ],
-            onChanged: _changeClass,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _DropdownBox<String>(
-            value: _subject,
-            enabled: !busy,
-            items: [
-              for (final subject in _subjects)
-                DropdownMenuItem(
-                  value: subject,
-                  child: Text(subject, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Term $_term',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-            ],
-            onChanged: _changeSubject,
+              ],
+            ),
           ),
-        ),
-      ],
+          const Icon(
+            Icons.auto_graph_rounded,
+            color: Color(0x66FFFFFF),
+            size: 58,
+          ),
+        ],
+      ),
     );
   }
 
-  // Table: header 35 high, rows 44 high, mark badge 60 x 24 on the right.
+  // Class and subject pickers: 41 high, 10 apart.
+  Widget _buildDropdowns() {
+    final busy = _saving || _loadingRoster;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _LabeledDropdown(
+              label: 'CLASS',
+              child: _DropdownBox<int>(
+                value: _classIndex,
+                enabled: !busy,
+                items: [
+                  for (var i = 0; i < _classes.length; i++)
+                    DropdownMenuItem(
+                      value: i,
+                      child: Text(
+                        '${_classes[i]['name'] ?? 'Class'}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: _changeClass,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _LabeledDropdown(
+              label: 'SUBJECT',
+              child: _DropdownBox<String>(
+                value: _subject,
+                enabled: !busy,
+                items: [
+                  for (final subject in _subjects)
+                    DropdownMenuItem(
+                      value: subject,
+                      child: Text(subject, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: _changeSubject,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDBEAFE)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.insights_rounded, color: _blue, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Entry progress',
+                  style: TextStyle(color: _ink, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                '$_enteredCount / ${_students.length}',
+                style: const TextStyle(
+                  color: _blue,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: _loadingRoster ? null : _completion,
+              backgroundColor: Colors.white,
+              valueColor: const AlwaysStoppedAnimation<Color>(_blue),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _isDirty ? 'Unsaved changes' : 'All changes saved',
+                style: TextStyle(
+                  color: _isDirty
+                      ? const Color(0xFFB45309)
+                      : const Color(0xFF047857),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                _enteredCount == 0
+                    ? 'Average —'
+                    : 'Average ${_average.toStringAsFixed(1)}',
+                style: const TextStyle(
+                  color: _grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Student roster table with compact, touch-friendly rows.
   Widget _buildTable() {
     return Container(
       decoration: BoxDecoration(
@@ -375,8 +559,8 @@ class _MarksScreenState extends State<MarksScreen> {
       child: Column(
         children: [
           Container(
-            height: 35,
-            color: const Color(0xFFF9FAFB),
+            height: 42,
+            color: const Color(0xFFF8FAFC),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: const Row(
               children: [
@@ -417,7 +601,7 @@ class _MarksScreenState extends State<MarksScreen> {
     return InkWell(
       onTap: _saving ? null : () => _focusNodes[id]?.requestFocus(),
       child: Container(
-        height: 44,
+        height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
@@ -426,9 +610,22 @@ class _MarksScreenState extends State<MarksScreen> {
           children: [
             SizedBox(
               width: 30,
-              child: Text(
-                '${index + 1}',
-                style: const TextStyle(color: _grey, fontSize: 13),
+              child: Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    color: _grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
             Expanded(
@@ -456,7 +653,7 @@ class _MarksScreenState extends State<MarksScreen> {
     );
   }
 
-  // "Save Marks" (fills the row) + summary chart button (48 x 48).
+  // Save action + summary shortcut.
   Widget _buildActions() {
     final canSave =
         !_saving && !_loadingRoster && _students.isNotEmpty && _isDirty;
@@ -538,6 +735,35 @@ class _HeaderText extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _LabeledDropdown extends StatelessWidget {
+  final String label;
+  final Widget child;
+
+  const _LabeledDropdown({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 7),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.7,
+            ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
 }
 
 class _DropdownBox<T> extends StatelessWidget {
