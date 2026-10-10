@@ -101,6 +101,13 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
                 decoration: BoxDecoration(
                   color: TaskColors.blue,
                   borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: TaskColors.blue.withValues(alpha: 0.22),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Icon(Icons.school, color: Colors.white, size: 22),
               ),
@@ -155,6 +162,13 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: TaskColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -204,6 +218,13 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: TaskColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: child,
     );
