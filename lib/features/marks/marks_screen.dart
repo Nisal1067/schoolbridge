@@ -7,6 +7,10 @@ import 'services/marks_service.dart';
 import 'widgets/mark_badge_field.dart';
 import 'widgets/marks_summary_sheet.dart';
 
+const _blue = Color(0xFF2563EB);
+const _ink = Color(0xFF17212F);
+const _grey = Color(0xFF6B7280);
+
 /// Teacher "Marks" tab, shown inside the teacher dashboard (it uses the
 /// dashboard's own top bar and bottom navigation).
 ///
@@ -26,7 +30,7 @@ class _MarksScreenState extends State<MarksScreen> {
   static const _grey = Color(0xFF6B7280);
 
   final _service = MarksService();
-  final _term = AttendanceRecord.termForDate(DateTime.now());
+  int _term = AttendanceRecord.termForDate(DateTime.now());
 
   bool _loading = true;
   bool _loadingRoster = false;
@@ -215,6 +219,13 @@ class _MarksScreenState extends State<MarksScreen> {
     await _loadRoster();
   }
 
+  Future<void> _changeTerm(int term) async {
+    if (term == _term || _saving) return;
+    if (!await _confirmDiscard() || !mounted) return;
+    setState(() => _term = term);
+    await _loadRoster();
+  }
+
   Future<void> _save() async {
     final classroom = _classroom;
     if (classroom == null || _saving) return;
@@ -282,6 +293,28 @@ class _MarksScreenState extends State<MarksScreen> {
       className: '${_classroom?['name'] ?? ''}',
       subject: _subject,
       summary: MarkSummary.of(marks, totalStudents: _students.length),
+    );
+  }
+
+  Future<void> _showStudentHistory(Map<String, dynamic> student) async {
+    final classroom = _classroom;
+    if (classroom == null || _loadingRoster) return;
+    FocusScope.of(context).unfocus();
+    final studentId = student['id'] as String;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _StudentHistorySheet(
+        service: _service,
+        classroom: classroom,
+        studentId: studentId,
+        studentName: '${student['name']}',
+        subject: _subject,
+      ),
     );
   }
 
@@ -432,45 +465,66 @@ class _MarksScreenState extends State<MarksScreen> {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: _LabeledDropdown(
-              label: 'CLASS',
-              child: _DropdownBox<int>(
-                value: _classIndex,
-                enabled: !busy,
-                items: [
-                  for (var i = 0; i < _classes.length; i++)
-                    DropdownMenuItem(
-                      value: i,
-                      child: Text(
-                        '${_classes[i]['name'] ?? 'Class'}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-                onChanged: _changeClass,
+          Row(
+            children: [
+              Expanded(
+                child: _LabeledDropdown(
+                  label: 'CLASS',
+                  child: _DropdownBox<int>(
+                    value: _classIndex,
+                    enabled: !busy,
+                    items: [
+                      for (var i = 0; i < _classes.length; i++)
+                        DropdownMenuItem(
+                          value: i,
+                          child: Text(
+                            '${_classes[i]['name'] ?? 'Class'}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _changeClass,
+                  ),
+                ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _LabeledDropdown(
+                  label: 'SUBJECT',
+                  child: _DropdownBox<String>(
+                    value: _subject,
+                    enabled: !busy,
+                    items: [
+                      for (final subject in _subjects)
+                        DropdownMenuItem(
+                          value: subject,
+                          child: Text(subject, overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                    onChanged: _changeSubject,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'TERM',
+            style: TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.7,
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _LabeledDropdown(
-              label: 'SUBJECT',
-              child: _DropdownBox<String>(
-                value: _subject,
-                enabled: !busy,
-                items: [
-                  for (final subject in _subjects)
-                    DropdownMenuItem(
-                      value: subject,
-                      child: Text(subject, overflow: TextOverflow.ellipsis),
-                    ),
-                ],
-                onChanged: _changeSubject,
-              ),
-            ),
+          const SizedBox(height: 7),
+          _TermSelector(
+            selected: _term,
+            enabled: !busy,
+            onChanged: _changeTerm,
           ),
         ],
       ),
@@ -570,6 +624,7 @@ class _MarksScreenState extends State<MarksScreen> {
                   width: 80,
                   child: _HeaderText('Mark /100', alignEnd: true),
                 ),
+                SizedBox(width: 34),
               ],
             ),
           ),
@@ -646,6 +701,15 @@ class _MarksScreenState extends State<MarksScreen> {
               enabled: !_saving,
               isLast: index == _students.length - 1,
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: _saving ? null : () => _showStudentHistory(student),
+              tooltip: 'View marks history',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 30, height: 36),
+              icon: const Icon(Icons.insights_rounded, size: 19, color: _blue),
             ),
           ],
         ),
@@ -762,6 +826,322 @@ class _LabeledDropdown extends StatelessWidget {
         ),
         child,
       ],
+    );
+  }
+}
+
+class _TermSelector extends StatelessWidget {
+  final int selected;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  const _TermSelector({
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final term in [1, 2, 3])
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: term == 3 ? 0 : 8),
+              child: ChoiceChip(
+                label: Text('Term $term'),
+                selected: selected == term,
+                onSelected: enabled ? (_) => onChanged(term) : null,
+                showCheckmark: false,
+                labelStyle: TextStyle(
+                  color: selected == term ? Colors.white : _ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+                selectedColor: _blue,
+                backgroundColor: const Color(0xFFF8FAFC),
+                side: BorderSide(
+                  color: selected == term ? _blue : const Color(0xFFE2E8F0),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _StudentHistorySheet extends StatelessWidget {
+  final MarksService service;
+  final Map<String, dynamic> classroom;
+  final String studentId;
+  final String studentName;
+  final String subject;
+
+  const _StudentHistorySheet({
+    required this.service,
+    required this.classroom,
+    required this.studentId,
+    required this.studentName,
+    required this.subject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: FutureBuilder<List<MarkRecord>>(
+        future: service.loadStudentHistory(
+          classroom: classroom,
+          studentId: studentId,
+          subject: subject,
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+              child: Text(
+                'Could not load this student\'s history.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _grey),
+              ),
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 70),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return _buildContent(context, snapshot.data!);
+        },
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, List<MarkRecord> records) {
+    final marks = records.map((record) => record.mark).toList();
+    final average = marks.isEmpty
+        ? 0.0
+        : marks.reduce((a, b) => a + b) / marks.length;
+    final best = marks.isEmpty ? 0 : marks.reduce((a, b) => a > b ? a : b);
+    final latest = records.isEmpty ? null : records.last;
+    final first = records.isEmpty ? null : records.first;
+    final change = first == null || latest == null || first == latest
+        ? null
+        : latest.mark - first.mark;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  studentName.isEmpty ? '?' : studentName[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: _blue,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      studentName,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$subject · Marks history',
+                      style: const TextStyle(color: _grey, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (records.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                'No marks have been recorded for this student yet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _grey),
+              ),
+            )
+          else ...[
+            Row(
+              children: [
+                _HistoryStat(
+                  label: 'Average',
+                  value: average.toStringAsFixed(1),
+                ),
+                const SizedBox(width: 10),
+                _HistoryStat(label: 'Best mark', value: '$best'),
+                const SizedBox(width: 10),
+                _HistoryStat(
+                  label: 'Trend',
+                  value: change == null
+                      ? '—'
+                      : '${change >= 0 ? '+' : ''}$change',
+                  valueColor: change == null
+                      ? _grey
+                      : change >= 0
+                      ? const Color(0xFF047857)
+                      : const Color(0xFFB91C1C),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Term-by-term performance',
+              style: TextStyle(
+                color: _ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 10),
+            for (final term in [1, 2, 3])
+              _HistoryTermRow(
+                term: term,
+                record: records.cast<MarkRecord?>().firstWhere(
+                  (record) => record!.term == term,
+                  orElse: () => null,
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  const _HistoryStat({
+    required this.label,
+    required this.value,
+    this.valueColor = _ink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: _grey, fontSize: 11)),
+            const SizedBox(height: 5),
+            Text(
+              value,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryTermRow extends StatelessWidget {
+  final int term;
+  final MarkRecord? record;
+
+  const _HistoryTermRow({required this.term, required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final mark = record?.mark;
+    final colors = mark == null
+        ? MarkColors.empty
+        : MarkColors.of(MarkGrading.bandFor(mark));
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Term $term',
+              style: const TextStyle(color: _ink, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: colors.bg,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Text(
+              mark == null ? 'Not entered' : '$mark / 100',
+              style: TextStyle(
+                color: colors.fg,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

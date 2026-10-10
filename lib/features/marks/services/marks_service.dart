@@ -73,6 +73,27 @@ class MarksService {
     return {for (final record in records) record.studentId: record};
   }
 
+  /// Loads every saved term for one student in the selected class and subject.
+  /// The teacher's class and school filters keep this query within the same
+  /// scope as the roster screen and the marks security rules.
+  Future<List<MarkRecord>> loadStudentHistory({
+    required Map<String, dynamic> classroom,
+    required String studentId,
+    required String subject,
+  }) async {
+    final result = await _firestore
+        .collection('marks')
+        .where('classId', isEqualTo: classroom['id'])
+        .where('schoolId', isEqualTo: classroom['schoolId'])
+        .where('studentId', isEqualTo: studentId)
+        .where('subject', isEqualTo: subject)
+        .get();
+    final records =
+        result.docs.map((d) => MarkRecord.fromMap(d.data())).toList()
+          ..sort((a, b) => a.term.compareTo(b.term));
+    return records;
+  }
+
   /// Creates or updates [upserts] and removes [deletes] (cleared marks).
   Future<void> saveMarks({
     List<MarkRecord> upserts = const [],
