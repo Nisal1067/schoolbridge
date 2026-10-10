@@ -158,6 +158,12 @@ class _ParentProgressScreenState extends State<ParentProgressScreen> {
             change: previous == null
                 ? null
                 : overview.subjectChange(record.subject, previous),
+            onTap: () => showSubjectAnalysis(
+              context,
+              subject: record.subject,
+              selectedTerm: _term,
+              allMarks: all,
+            ),
           ),
           const SizedBox(height: 10),
         ],

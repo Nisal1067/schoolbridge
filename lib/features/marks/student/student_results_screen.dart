@@ -99,6 +99,12 @@ class _StudentResultsScreenState extends State<StudentResultsScreen> {
                     change: previous == null
                         ? null
                         : overview.subjectChange(record.subject, previous),
+                    onTap: () => showSubjectAnalysis(
+                      context,
+                      subject: record.subject,
+                      selectedTerm: _term,
+                      allMarks: snapshot.data!,
+                    ),
                   ),
                   const SizedBox(height: 10),
                 ],

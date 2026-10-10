@@ -107,7 +107,7 @@ class _StudentHomeworkScreenState extends State<StudentHomeworkScreen> {
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
-                  'Homework',
+                  'SchoolBridge',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
