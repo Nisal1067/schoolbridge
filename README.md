@@ -17,4 +17,4 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 
-//abcd
+SchoolBridge is a Flutter-based mobile application designed to connect schools, students, teachers, and parents through a single platform.
