@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
-
 import 'dart:typed_data';
-import 'package:file_saver/file_saver.dart';
+
+import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/utils/pdf_downloader/pdf_downloader.dart';
 import 'models/attendance_record.dart';
 import 'widgets/attendance_navigation.dart';
 import 'widgets/student_attendance_view.dart';
@@ -835,30 +834,20 @@ class _ParentAttendanceReportScreenState
 
       Uint8List bytes = await pdf.save();
       final safeStudentName = _studentName
-          .replaceAll(RegExp(r'[\\/\x00-\x1F]'), '_')
+          .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_')
           .replaceAll(' ', '_');
-      final savedPath = await FileSaver.instance.saveToDownloads(
-        name: 'Attendance_Report_${safeStudentName}_$period',
-        bytes: bytes,
-        fileExtension: 'pdf',
-        mimeType: MimeType.pdf,
+      final safePeriod = period.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+      await downloadPdf(
+        bytes,
+        'Attendance_Report_${safeStudentName}_$safePeriod.pdf',
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
-              savedPath == null || savedPath.isEmpty
-                  ? 'PDF download started. Check your Downloads folder.'
-                  : 'PDF saved to Downloads.',
+              'PDF saved to Downloads.',
             ),
-            action: savedPath == null || savedPath.isEmpty
-                ? null
-                : SnackBarAction(
-                    label: 'Open',
-                    textColor: Colors.white,
-                    onPressed: () => launchUrl(Uri.parse(savedPath)),
-                  ),
             backgroundColor: Colors.green,
           ),
         );
