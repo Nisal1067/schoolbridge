@@ -16,6 +16,9 @@ void main() {
     await tester.pumpWidget(const SchoolBridgeApp());
 
     expect(find.text('SchoolBridge'), findsOneWidget);
-    expect(find.text('Connecting school and home'), findsOneWidget);
+    expect(
+      find.text('Connecting classroom, home, and success'),
+      findsOneWidget,
+    );
   });
 }

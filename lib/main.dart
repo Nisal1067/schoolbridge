@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'auth/screens/splash_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
-import 'auth/services/session_navigation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,7 +42,6 @@ class SchoolBridgeApp extends StatelessWidget {
       title: 'SchoolBridge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      navigatorObservers: [SessionNavigation()],
       home: const SplashScreen(),
     );
   }
