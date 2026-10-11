@@ -26,7 +26,7 @@ class AttendanceService {
         // Saving again updates the existing attendance instead of
         // creating a duplicate.
         final documentId = record.documentId;
-
+        //create/update the attendance record in firestore
         final documentReference = _firestore
             .collection('attendance')
             .doc(documentId);

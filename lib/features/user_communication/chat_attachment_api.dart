@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -16,21 +15,30 @@ class AttachmentApiException implements Exception {
 
 class ChatAttachmentApi {
   static const maxBytes = 10 * 1024 * 1024;
-  
+
   static const _cloudName = 'mkbiqlpk';
   static const _apiKey = '435597969727599';
   static const _apiSecret = '3t7L-J8H-QyuYit8MExLS92W910';
 
+  static Uri endpoint(String chat, String messageId) =>
+      Uri(path: '/chats/$chat/attachments/$messageId');
+
   static String _getContentType(String name) {
     final ext = name.split('.').last.toLowerCase();
     switch (ext) {
-      case 'png': return 'image/png';
+      case 'png':
+        return 'image/png';
       case 'jpg':
-      case 'jpeg': return 'image/jpeg';
-      case 'pdf': return 'application/pdf';
-      case 'txt': return 'text/plain';
-      case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      default: return 'application/octet-stream';
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'pdf':
+        return 'application/pdf';
+      case 'txt':
+        return 'text/plain';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default:
+        return 'application/octet-stream';
     }
   }
 
@@ -49,7 +57,8 @@ class ChatAttachmentApi {
       throw AttachmentApiException('Attachment exceeds 10 MB.');
     }
 
-    final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
+    final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
+        .toString();
     final publicId = 'schoolbridge/chats/$chat/${user.uid}/$messageId/$name';
     final contentType = _getContentType(name);
 
@@ -58,7 +67,9 @@ class ChatAttachmentApi {
     final signature = sha1.convert(bytesToSign).toString();
 
     final resourceType = contentType.startsWith('image/') ? 'image' : 'raw';
-    final uri = Uri.parse('https://api.cloudinary.com/v1_1/$_cloudName/$resourceType/upload');
+    final uri = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$_cloudName/$resourceType/upload',
+    );
 
     final request = _UploadRequest(uri, onProgress)
       ..fields['api_key'] = _apiKey
@@ -84,7 +95,9 @@ class ChatAttachmentApi {
           'url': decoded['secure_url'],
         };
       } else {
-        throw AttachmentApiException('Attachment upload failed: ${response.statusCode}');
+        throw AttachmentApiException(
+          'Attachment upload failed: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw AttachmentApiException('Upload failed: $e');
@@ -94,7 +107,7 @@ class ChatAttachmentApi {
   }
 
   static Future<void> discard(String chat, String messageId) async {
-    // Cloudinary drafts can be ignored, or deleted using Destroy API. 
+    // Cloudinary drafts can be ignored, or deleted using Destroy API.
     // Usually discarded natively if we just don't persist them in firestore.
   }
 
@@ -104,8 +117,10 @@ class ChatAttachmentApi {
       if (url == null) {
         throw AttachmentApiException('Attachment not found.');
       }
-      
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 45));
+
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 45));
       if (response.statusCode != 200) {
         throw AttachmentApiException('Attachment could not be downloaded.');
       }

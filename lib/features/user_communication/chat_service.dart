@@ -5,9 +5,9 @@ import 'chat_attachment_api.dart';
 
 import 'dart:typed_data';
 import 'dart:async';
+
 import '../attendance/services/attendance_service.dart';
 import '../notifications/services/notification_service.dart';
-
 
 class ChatService {
   static String sendError(Object error) {
@@ -103,7 +103,10 @@ class ChatService {
             if (parentId.trim().isEmpty) continue;
             String parentName = 'Parent';
             try {
-              final parentDoc = await db.collection('users').doc(parentId).get();
+              final parentDoc = await db
+                  .collection('users')
+                  .doc(parentId)
+                  .get();
               if (parentDoc.exists && parentDoc.data()?['name'] != null) {
                 parentName = parentDoc.data()!['name'];
               }
@@ -125,7 +128,8 @@ class ChatService {
         if (classId == null || classId.isEmpty) continue;
         Map<String, dynamic>? classroom;
         try {
-          classroom = (await db.collection('classes').doc(classId).get()).data();
+          classroom = (await db.collection('classes').doc(classId).get())
+              .data();
         } catch (_) {}
         if (classroom == null) continue;
         final teachers = <String>{
@@ -137,7 +141,10 @@ class ChatService {
           if (teacherId.trim().isEmpty) continue;
           String teacherName = 'Teacher';
           try {
-            final teacherDoc = await db.collection('users').doc(teacherId).get();
+            final teacherDoc = await db
+                .collection('users')
+                .doc(teacherId)
+                .get();
             if (teacherDoc.exists && teacherDoc.data()?['name'] != null) {
               teacherName = teacherDoc.data()!['name'];
             }
@@ -193,16 +200,16 @@ class ChatService {
   }) async {
     final ref = db.collection('chats').doc(id);
     final batch = db.batch();
-    
-    final messagePreview = text.trim().isNotEmpty 
-        ? text.trim() 
+
+    final messagePreview = text.trim().isNotEmpty
+        ? text.trim()
         : 'Attachment: ${attachment!['name']}';
 
     batch.set(ref.collection('messages').doc(messageId), {
       'senderId': uid,
       'text': text.trim(),
       'sentAt': FieldValue.serverTimestamp(),
-      'attachment': ?attachment,
+      if (attachment != null) 'attachment': attachment,
     });
     batch.update(ref, {
       'lastMessage': messagePreview,
@@ -235,4 +242,3 @@ class ChatService {
     }
   }
 }
-
