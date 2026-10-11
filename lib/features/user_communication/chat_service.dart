@@ -72,10 +72,29 @@ class ChatService {
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> conversationPreferences() =>
       db.collection('users').doc(uid).snapshots();
-
   Future<void> deleteConversation(String id) =>
       db.collection('users').doc(uid).update({
         FieldPath(['deletedChats', id]): FieldValue.serverTimestamp(),
+      });
+
+  Future<void> deleteMessageForMe(String chatId, String messageId) =>
+      db.collection('users').doc(uid).update({
+        FieldPath(['hiddenMessages', chatId, messageId]):
+            FieldValue.serverTimestamp(),
+      });
+
+  Future<void> deleteMessageForEveryone(String chatId, String messageId) =>
+      db
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+        'deletedForEveryone': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'deletedBy': uid,
+        'text': '',
+        'attachment': FieldValue.delete(),
       });
 
   static bool isConversationHidden(dynamic deletedAt, dynamic lastMessageAt) =>

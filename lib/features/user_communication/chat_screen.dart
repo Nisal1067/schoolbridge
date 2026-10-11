@@ -21,6 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _service = ChatService();
   final _input = TextEditingController();
   late Stream<QuerySnapshot<Map<String, dynamic>>> _messages;
+  late final _preferences = _service.conversationPreferences();
   int _limit = 50;
   bool _sending = false;
   bool _picking = false;
@@ -171,6 +172,54 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _deleteMessage(
+    String messageId,
+    Map<String, dynamic> message,
+  ) async {
+    final mine = message['senderId'] == _service.uid;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded),
+              title: const Text('Delete for me'),
+              onTap: () => Navigator.pop(context, 'me'),
+            ),
+            if (mine)
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_forever_outlined,
+                  color: Color(0xFFDC2626),
+                ),
+                title: const Text('Delete for everyone'),
+                textColor: const Color(0xFFDC2626),
+                onTap: () => Navigator.pop(context, 'everyone'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (action == null) return;
+    try {
+      if (action == 'everyone') {
+        await _service.deleteMessageForEveryone(widget.chatId, messageId);
+      } else {
+        await _service.deleteMessageForMe(widget.chatId, messageId);
+      }
+    } catch (_) {
+      if (mounted) {
+        _notice(
+          action == 'everyone'
+              ? 'Could not delete for everyone. Publish the updated Firestore rules and retry.'
+              : 'Could not delete this message. Please retry.',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.background,
@@ -289,72 +338,94 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _messages,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return _empty(
-                          Icons.cloud_off_outlined,
-                          'Messages unavailable',
-                          'Check your connection and chat access.',
-                          retry: true,
-                        );
-                      }
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final docs = snapshot.data!.docs;
-                      if (docs.isEmpty) {
-                        return _empty(
-                          Icons.forum_outlined,
-                          'Start a conversation',
-                          widget.title,
-                        );
-                      }
-                      return ListView.builder(
-                        reverse: true,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 22,
-                        ),
-                        itemCount: docs.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == docs.length) {
-                            return docs.length < _limit
-                                ? const SizedBox.shrink()
-                                : Center(
-                                    child: TextButton.icon(
-                                      onPressed: () => setState(() {
-                                        _limit += 50;
-                                        _watch();
-                                      }),
-                                      icon: const Icon(Icons.history),
-                                      label: const Text('Older messages'),
-                                    ),
-                                  );
+                  child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    stream: _preferences,
+                    builder: (context, preferences) {
+                      final hiddenRoot = preferences.data?.data()?['hiddenMessages'];
+                      final hiddenForChat = hiddenRoot is Map
+                          ? hiddenRoot[widget.chatId]
+                          : null;
+                      final hidden = hiddenForChat is Map
+                          ? hiddenForChat.keys.map((key) => key.toString()).toSet()
+                          : <String>{};
+
+                      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: _messages,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return _empty(
+                              Icons.cloud_off_outlined,
+                              'Messages unavailable',
+                              'Check your connection and chat access.',
+                              retry: true,
+                            );
                           }
-                          final message = docs[index].data();
-                          final date = (message['sentAt'] as Timestamp?)
-                              ?.toDate()
-                              .toLocal();
-                          final previous = index + 1 < docs.length
-                              ? (docs[index + 1].data()['sentAt']
-                                      as Timestamp?)
+                          if (!snapshot.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final docs = snapshot.data!.docs
+                              .where((doc) => !hidden.contains(doc.id))
+                              .where((doc) {
+                            final deletedFor = doc.data()['deletedFor'];
+                            return deletedFor is! List ||
+                                !deletedFor.contains(_service.uid);
+                          }).toList();
+                          if (docs.isEmpty) {
+                            return _empty(
+                              Icons.forum_outlined,
+                              'Start a conversation',
+                              widget.title,
+                            );
+                          }
+                          return ListView.builder(
+                            reverse: true,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 22,
+                            ),
+                            itemCount: docs.length + 1,
+                            itemBuilder: (context, index) {
+                              if (index == docs.length) {
+                                return docs.length < _limit
+                                    ? const SizedBox.shrink()
+                                    : Center(
+                                        child: TextButton.icon(
+                                          onPressed: () => setState(() {
+                                            _limit += 50;
+                                            _watch();
+                                          }),
+                                          icon: const Icon(Icons.history),
+                                          label: const Text('Older messages'),
+                                        ),
+                                      );
+                              }
+                              final message = docs[index].data();
+                              final date = (message['sentAt'] as Timestamp?)
                                   ?.toDate()
-                                  .toLocal()
-                              : null;
-                          final newDay =
-                              date != null &&
-                              !DateUtils.isSameDay(date, previous);
-                          return Column(
-                            children: [
-                              if (newDay) _datePill(date),
-                              _bubble(
-                                message,
-                                date,
-                                docs[index].metadata.hasPendingWrites,
-                              ),
-                            ],
+                                  .toLocal();
+                              final previous = index + 1 < docs.length
+                                  ? (docs[index + 1].data()['sentAt']
+                                          as Timestamp?)
+                                      ?.toDate()
+                                      .toLocal()
+                                  : null;
+                              final newDay =
+                                  date != null &&
+                                  !DateUtils.isSameDay(date, previous);
+                              return Column(
+                                children: [
+                                  if (newDay) _datePill(date),
+                                  _bubble(
+                                    docs[index].id,
+                                    message,
+                                    date,
+                                    docs[index].metadata.hasPendingWrites,
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
                       );
@@ -430,92 +501,120 @@ class _ChatScreenState extends State<ChatScreen> {
     ),
   );
 
-  Widget _bubble(Map<String, dynamic> message, DateTime? date, bool pending) {
+  Widget _bubble(
+    String messageId,
+    Map<String, dynamic> message,
+    DateTime? date,
+    bool pending,
+  ) {
     final mine = message['senderId'] == _service.uid;
+    final deletedForEveryone = message['deletedForEveryone'] == true;
     final text = message['text'] as String? ?? '';
-    final blueBubble = mine && message['attachment'] == null;
+    final blueBubble =
+        mine && message['attachment'] == null && !deletedForEveryone;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: (MediaQuery.sizeOf(context).width * .76).clamp(0, 560),
-        ),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: blueBubble
-              ? const LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: blueBubble ? null : Colors.white,
-          border: blueBubble ? null : Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(22),
-            topRight: const Radius.circular(22),
-            bottomLeft: Radius.circular(mine ? 22 : 7),
-            bottomRight: Radius.circular(mine ? 7 : 22),
+      child: GestureDetector(
+        onLongPress: pending
+            ? null
+            : () => _deleteMessage(messageId, message),
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: (MediaQuery.sizeOf(context).width * .76).clamp(0, 560),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: blueBubble
+                ? const LinearGradient(
+                    colors: [AppColors.primary, AppColors.secondary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: blueBubble ? null : Colors.white,
+            border: blueBubble
+                ? null
+                : Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(22),
+              topRight: const Radius.circular(22),
+              bottomLeft: Radius.circular(mine ? 22 : 7),
+              bottomRight: Radius.circular(mine ? 7 : 22),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (message['attachment'] is Map)
-              ChatAttachment(
-                attachment: Map<String, dynamic>.from(message['attachment']),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
               ),
-            if (text.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(
-                  top: message['attachment'] == null ? 0 : 10,
-                ),
-                child: SelectableText(
-                  text,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (deletedForEveryone)
+                const Text(
+                  'This message was deleted',
                   style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: blueBubble ? Colors.white : const Color(0xFF1E293B),
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFF64748B),
                   ),
-                ),
-              ),
-            const SizedBox(height: 7),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  date == null
-                      ? 'Sending'
-                      : '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: blueBubble
-                        ? Colors.white70
-                        : const Color(0xFF64748B),
+                )
+              else ...[
+                if (message['attachment'] is Map)
+                  ChatAttachment(
+                    attachment: Map<String, dynamic>.from(
+                      message['attachment'],
+                    ),
                   ),
-                ),
-                if (mine) ...[
-                  const SizedBox(width: 5),
-                  Icon(
-                    pending ? Icons.schedule : Icons.done_all_rounded,
-                    size: 14,
-                    color: blueBubble
-                        ? Colors.white70
-                        : const Color(0xFF64748B),
+                if (text.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: message['attachment'] == null ? 0 : 10,
+                    ),
+                    child: SelectableText(
+                      text,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: blueBubble
+                            ? Colors.white
+                            : const Color(0xFF1E293B),
+                      ),
+                    ),
                   ),
-                ],
               ],
-            ),
-          ],
+              const SizedBox(height: 7),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    date == null
+                        ? 'Sending'
+                        : '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: blueBubble
+                          ? Colors.white70
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                  if (mine) ...[
+                    const SizedBox(width: 5),
+                    Icon(
+                      pending ? Icons.schedule : Icons.done_all_rounded,
+                      size: 14,
+                      color: blueBubble
+                          ? Colors.white70
+                          : const Color(0xFF64748B),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

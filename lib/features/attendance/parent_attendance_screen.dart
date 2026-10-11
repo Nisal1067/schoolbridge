@@ -373,6 +373,7 @@ class _ParentAttendanceScreenState extends State<ParentAttendanceScreen> {
               builder: (context) => ParentAttendanceReportScreen(
                 initialView: selectedView,
                 initialStudentId: studentId,
+                studentLayout: widget.studentLayout,
               ),
             ),
           );

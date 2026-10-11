@@ -4,18 +4,21 @@ import 'dart:typed_data';
 import 'package:file_saver/file_saver.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../../dashboards/screens/parent_dashboard.dart';
 import 'models/attendance_record.dart';
+import 'widgets/attendance_navigation.dart';
 import 'widgets/student_attendance_view.dart';
 
 class ParentAttendanceReportScreen extends StatefulWidget {
   final int initialView;
   final String? initialStudentId;
+  final bool studentLayout;
   const ParentAttendanceReportScreen({
     super.key,
     this.initialView = 0,
     this.initialStudentId,
+    this.studentLayout = false,
   });
 
   @override
@@ -45,53 +48,8 @@ class _ParentAttendanceReportScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
-      bottomNavigationBar: Theme(
-        data: Theme.of(context).copyWith(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        child: NavigationBar(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
-          elevation: 15,
-          indicatorColor: const Color(0xFFE0E7FF),
-          selectedIndex: 2,
-          onDestinationSelected: (index) {
-            if (index == 2) {
-              Navigator.pop(context);
-              return;
-            }
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => ParentDashboard(initialIndex: index)),
-              (route) => false,
-            );
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.bar_chart_outlined),
-              label: 'Progress',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.fact_check_outlined),
-              selectedIcon: Icon(Icons.fact_check),
-              label: 'Attendance',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              label: 'Chat',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      bottomNavigationBar: AttendanceNavigation(
+        studentLayout: widget.studentLayout,
       ),
 
       appBar: AppBar(
@@ -876,8 +834,11 @@ class _ParentAttendanceReportScreenState
       );
 
       Uint8List bytes = await pdf.save();
-      await FileSaver.instance.saveFile(
-        name: 'Attendance_Report_${_studentName.replaceAll(' ', '_')}',
+      final safeStudentName = _studentName
+          .replaceAll(RegExp(r'[\\/\x00-\x1F]'), '_')
+          .replaceAll(' ', '_');
+      final savedPath = await FileSaver.instance.saveToDownloads(
+        name: 'Attendance_Report_${safeStudentName}_$period',
         bytes: bytes,
         fileExtension: 'pdf',
         mimeType: MimeType.pdf,
@@ -885,7 +846,21 @@ class _ParentAttendanceReportScreenState
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF downloaded successfully!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(
+              savedPath == null || savedPath.isEmpty
+                  ? 'PDF download started. Check your Downloads folder.'
+                  : 'PDF saved to Downloads.',
+            ),
+            action: savedPath == null || savedPath.isEmpty
+                ? null
+                : SnackBarAction(
+                    label: 'Open',
+                    textColor: Colors.white,
+                    onPressed: () => launchUrl(Uri.parse(savedPath)),
+                  ),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {

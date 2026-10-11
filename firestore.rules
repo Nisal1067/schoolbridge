@@ -265,9 +265,21 @@ service cloud.firestore {
           && request.resource.data.text.size() <= 2000 && validAttachment(request.resource.data)
           && request.resource.data.sentAt == request.time;
         // Identical retries are safe after an uncertain network acknowledgement.
-        allow update: if validChatPair(chat()) && resource.data.senderId == request.auth.uid
+        allow update: if (validChatPair(chat()) && resource.data.senderId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sentAt'])
-          && request.resource.data.sentAt == request.time;
+          && request.resource.data.sentAt == request.time)
+          || (validChatPair(chat())
+            && request.auth.uid in chat().participantIds
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedFor'])
+            && request.resource.data.deletedFor is list
+            && request.auth.uid in request.resource.data.deletedFor)
+          || (validChatPair(chat())
+            && resource.data.senderId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['deletedForEveryone', 'deletedAt', 'deletedBy', 'text', 'attachment'])
+            && request.resource.data.deletedForEveryone == true
+            && request.resource.data.deletedBy == request.auth.uid
+            && request.resource.data.text == '');
         allow delete: if false;
       }
       // Only the trusted attachment API may create upload receipts.

@@ -4,6 +4,7 @@ import '../../announcements/services/announcement_service.dart';
 import '../services/notification_service.dart';
 import '../models/in_app_notification.dart';
 import '../../announcements/models/announcement_item.dart';
+import '../../user_communication/chat_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   final bool onlyNotifications;
@@ -30,6 +31,44 @@ class NotificationsScreen extends StatelessWidget {
     final min = dt.minute.toString().padLeft(2, '0');
     final ampm = dt.hour >= 12 ? 'PM' : 'AM';
     return '$month ${dt.day}, $hr:$min $ampm';
+  }
+
+  Future<void> _openNotification(
+    BuildContext context,
+    InAppNotification notification,
+  ) async {
+    if (!notification.isRead) {
+      await NotificationService().markAsRead(notification.id);
+    }
+    if (!context.mounted) return;
+
+    if (notification.type == 'chat' &&
+        (notification.relatedId ?? '').isNotEmpty) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatId: notification.relatedId!,
+            title: notification.title.replaceFirst('New message from ', ''),
+          ),
+        ),
+      );
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(notification.title),
+        content: Text(notification.body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -74,12 +113,7 @@ class NotificationsScreen extends StatelessWidget {
             if (notifications.isEmpty) {
               return _emptyNotifications();
             }
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              itemCount: notifications.length,
-              itemBuilder: (context, index) =>
-                  _buildNotificationTile(context, notifications[index]),
-            );
+            return _buildNotificationHistory(context, notifications);
           }
 
           return StreamBuilder<List<AnnouncementItem>>(
@@ -93,24 +127,7 @@ class NotificationsScreen extends StatelessWidget {
               final notifications = notifSnapshot.data ?? [];
               final announcements = annSnapshot.data ?? [];
 
-              // Combine into a single list of dynamic items
-              final List<dynamic> combinedList = [
-                ...notifications,
-                ...announcements,
-              ];
-
-              // Sort by date (descending)
-              combinedList.sort((a, b) {
-                DateTime dateA = a is InAppNotification
-                    ? a.createdAt
-                    : (a.createdAt ?? DateTime.now());
-                DateTime dateB = b is InAppNotification
-                    ? b.createdAt
-                    : (b.createdAt ?? DateTime.now());
-                return dateB.compareTo(dateA);
-              });
-
-              if (combinedList.isEmpty) {
+              if (notifications.isEmpty && announcements.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -134,19 +151,23 @@ class NotificationsScreen extends StatelessWidget {
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                itemCount: combinedList.length,
-                itemBuilder: (context, index) {
-                  final item = combinedList[index];
+              final unread = notifications.where((n) => !n.isRead).toList();
+              final read = notifications.where((n) => n.isRead).toList();
 
-                  if (item is InAppNotification) {
-                    return _buildNotificationTile(context, item);
-                  } else if (item is AnnouncementItem) {
-                    return _buildAnnouncementTile(context, item);
-                  }
-                  return const SizedBox.shrink();
-                },
+              return ListView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                children: [
+                  if (unread.isNotEmpty) _sectionHeader('Unread', unread.length),
+                  for (final notification in unread)
+                    _buildNotificationTile(context, notification),
+                  if (read.isNotEmpty) _sectionHeader('Read', read.length),
+                  for (final notification in read)
+                    _buildNotificationTile(context, notification),
+                  if (announcements.isNotEmpty)
+                    _sectionHeader('Announcements', announcements.length),
+                  for (final announcement in announcements)
+                    _buildAnnouncementTile(context, announcement),
+                ],
               );
             },
           );
@@ -179,6 +200,59 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildNotificationHistory(
+    BuildContext context,
+    List<InAppNotification> notifications,
+  ) {
+    final unread = notifications.where((n) => !n.isRead).toList();
+    final read = notifications.where((n) => n.isRead).toList();
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      children: [
+        if (unread.isNotEmpty) _sectionHeader('Unread', unread.length),
+        for (final notification in unread)
+          _buildNotificationTile(context, notification),
+        if (read.isNotEmpty) _sectionHeader('Read', read.length),
+        for (final notification in read)
+          _buildNotificationTile(context, notification),
+      ],
+    );
+  }
+
+  Widget _sectionHeader(String title, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                color: Color(0xFF2563EB),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotificationTile(
     BuildContext context,
     InAppNotification notification,
@@ -196,12 +270,7 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
       child: ListTile(
-        onTap: () {
-          if (!notification.isRead) {
-            NotificationService().markAsRead(notification.id);
-          }
-          // Navigate to related chat based on relatedId if needed
-        },
+        onTap: () => _openNotification(context, notification),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(12),
