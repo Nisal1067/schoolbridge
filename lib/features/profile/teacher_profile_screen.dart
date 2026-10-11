@@ -134,6 +134,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
       'Thursday',
       'Friday',
       'Saturday',
+      'Sunday',
     ];
     var day = days.first;
     final classNames = classes
