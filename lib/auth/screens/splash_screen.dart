@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/session_navigation.dart';
@@ -11,35 +13,63 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   String? _error;
+  bool _isRestoring = false;
+  Timer? _splashTimer;
+
   @override
   void initState() {
     super.initState();
-
     _restore();
   }
 
+  @override
+  void dispose() {
+    _splashTimer?.cancel();
+    _isRestoring = false;
+    super.dispose();
+  }
+
+  Future<void> _awaitSplashDelay() {
+    final completer = Completer<void>();
+    _splashTimer = Timer(const Duration(seconds: 4), () {
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    });
+    return completer.future;
+  }
+
   Future<void> _restore() async {
-    setState(() => _error = null);
+    if (!mounted || _isRestoring) return;
+    _isRestoring = true;
+    if (mounted) {
+      setState(() => _error = null);
+    }
+
     try {
       final results = await Future.wait([
         SessionNavigation.restore(),
-        Future.delayed(
-          const Duration(seconds: 4),
-        ), // Increased splash duration to 4 seconds
+        _awaitSplashDelay(),
       ]);
       final page = results[0] as Widget;
+
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => page),
-      );
+      final route = MaterialPageRoute(builder: (_) => page);
+      if (mounted && Navigator.of(context).mounted) {
+        Navigator.of(context).pushReplacement(route);
+      }
     } catch (_) {
       if (mounted) {
         setState(
           () =>
               _error = 'Could not restore your session. Check your connection.',
         );
+      }
+    } finally {
+      _splashTimer?.cancel();
+      if (mounted) {
+        _isRestoring = false;
       }
     }
   }
